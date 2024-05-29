@@ -1,5 +1,5 @@
 """
-IFC and Excel File Analysis Tool
+IFC and Excel File Analysis Tool with ISO 19650 Enhancements
 
 This Streamlit application provides an interactive interface for analyzing
 IFC (Industry Foundation Classes) files and Excel spreadsheets. It allows
@@ -26,6 +26,8 @@ import tempfile
 import os
 import plotly.express as px  # For interactive plots
 import plotly.graph_objects as go
+from datetime import datetime
+import hashlib
 
 # Utility Functions
 def handle_file_upload(upload_type, file_types):
@@ -34,8 +36,8 @@ def handle_file_upload(upload_type, file_types):
         with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_types[0]}') as tmp_file:
             tmp_file.write(uploaded_file.getvalue())
             tmp_file_path = tmp_file.name
-        return tmp_file_path
-    return None
+        return tmp_file_path, uploaded_file.name
+    return None, None
 
 def process_ifc_file(file_path):
     try:
@@ -50,6 +52,33 @@ def read_excel(file):
     except Exception as e:
         st.error(f"Failed to read Excel file: {e}")
         return pd.DataFrame()
+
+# Metadata Management
+def display_metadata(ifc_file):
+    project = ifc_file.by_type('IfcProject')
+    if project:
+        project = project[0]
+        st.write("### Project Metadata")
+        st.write(f"Name: {project.Name}")
+        st.write(f"Description: {project.Description}")
+        st.write(f"Phase: {project.Phase}")
+        st.write(f"Time Stamp: {datetime.fromtimestamp(project.CreationDate)}")
+
+# Version Control
+def get_file_hash(file_path):
+    with open(file_path, "rb") as f:
+        bytes = f.read()
+        return hashlib.md5(bytes).hexdigest()
+
+def version_control(file_path, file_name):
+    file_hash = get_file_hash(file_path)
+    versions = st.session_state.get('versions', {})
+    if file_name not in versions:
+        versions[file_name] = []
+    versions[file_name].append({'hash': file_hash, 'timestamp': datetime.now()})
+    st.session_state['versions'] = versions
+    st.write("### Version Control")
+    st.write(versions[file_name])
 
 # IFC Analysis Functions
 def count_building_components(ifc_file):
@@ -109,11 +138,13 @@ def generate_insights(df):
 
 # Main Analysis Functions
 def ifc_file_analysis():
-    file_path = handle_file_upload("IFC", ['ifc'])
+    file_path, file_name = handle_file_upload("IFC", ['ifc'])
     if file_path:
         with st.spinner('Processing IFC file...'):
             ifc_file = process_ifc_file(file_path)
             if ifc_file:
+                display_metadata(ifc_file)
+                version_control(file_path, file_name)
                 component_count = count_building_components(ifc_file)
                 chart_type = st.radio("Chart Type", options=['Bar Chart', 'Pie Chart'], key="chart")
                 fig = visualize_component_count(component_count, chart_type)
@@ -129,7 +160,7 @@ def detailed_analysis_ui(ifc_file):
         detailed_analysis(ifc_file, selected_product_type, sort_by)
 
 def excel_file_analysis():
-    file_path = handle_file_upload("Excel", ['xlsx'])
+    file_path, _ = handle_file_upload("Excel", ['xlsx'])
     if file_path:
         df = read_excel(file_path)
         if not df.empty:
@@ -179,8 +210,8 @@ def compare_ifc_files_ui():
     This step-by-step process will help you understand the detailed differences in building components between the two IFC files, as well as provide an overall summary of the differences.
     """)
 
-    file_path1 = handle_file_upload("first IFC", ['ifc'])
-    file_path2 = handle_file_upload("second IFC", ['ifc'])
+    file_path1, _ = handle_file_upload("first IFC", ['ifc'])
+    file_path2, _ = handle_file_upload("second IFC", ['ifc'])
 
     if file_path1 and file_path2:
         with st.spinner('Processing IFC files...'):
