@@ -20,6 +20,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import ifcopenshell
+import ifcopenshell.api
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import tempfile
@@ -73,22 +74,47 @@ def get_file_hash(file_path):
         bytes = f.read()
         return hashlib.md5(bytes).hexdigest()
 
+def add_version_control_info(ifc_file, file_name, version_info):
+    project = ifc_file.by_type('IfcProject')[0]
+    existing_versions = getattr(project, 'version_control', [])
+    existing_versions.append(version_info)
+    project.version_control = existing_versions
+    ifcopenshell.api.run("pset.add_pset", ifc_file, product=project, name="VersionControl", properties={
+        "FileName": file_name,
+        "Hash": version_info['hash'],
+        "Timestamp": version_info['timestamp'].isoformat(),
+        "Author": version_info['author'],
+        "Description": version_info['description'],
+        "ApprovalStatus": version_info['approval_status'],
+        "Comments": version_info['comments']
+    })
+
 def version_control(file_path, file_name):
     file_hash = get_file_hash(file_path)
-    versions = st.session_state.get('versions', {})
-    if file_name not in versions:
-        versions[file_name] = []
-    versions[file_name].append({
-        'hash': file_hash,
-        'timestamp': datetime.now(),
-        'author': st.text_input(f"Author of {file_name}", key=f"author_{file_name}"),
-        'description': st.text_area(f"Change description for {file_name}", key=f"description_{file_name}"),
-        'approval_status': st.selectbox(f"Approval status of {file_name}", ['Pending', 'Approved', 'Rejected'], key=f"approval_{file_name}"),
-        'comments': st.text_area(f"Comments for {file_name}", key=f"comments_{file_name}")
-    })
-    st.session_state['versions'] = versions
-    st.write("### Version Control")
-    st.write(versions[file_name])
+    if 'versions' not in st.session_state:
+        st.session_state['versions'] = {}
+
+    if file_name not in st.session_state['versions']:
+        st.session_state['versions'][file_name] = []
+
+    author = st.text_input(f"Author of {file_name}", key=f"author_{file_name}")
+    description = st.text_area(f"Change description for {file_name}", key=f"description_{file_name}")
+    approval_status = st.selectbox(f"Approval status of {file_name}", ['Pending', 'Approved', 'Rejected'], key=f"approval_{file_name}")
+    comments = st.text_area(f"Comments for {file_name}", key=f"comments_{file_name}")
+
+    if st.button(f"Save Version Information for {file_name}"):
+        version_info = {
+            'hash': file_hash,
+            'timestamp': datetime.now(),
+            'author': author,
+            'description': description,
+            'approval_status': approval_status,
+            'comments': comments
+        }
+        st.session_state['versions'][file_name].append(version_info)
+        st.success(f"Version information for {file_name} saved.")
+        return version_info
+    return None
 
 # IFC Analysis Functions
 def count_building_components(ifc_file):
@@ -154,7 +180,9 @@ def ifc_file_analysis():
             ifc_file = process_ifc_file(file_path)
             if ifc_file:
                 display_metadata(ifc_file)
-                version_control(file_path, file_name)
+                version_info = version_control(file_path, file_name)
+                if version_info:
+                    add_version_control_info(ifc_file, file_name, version_info)
                 component_count = count_building_components(ifc_file)
                 chart_type = st.radio("Chart Type", options=['Bar Chart', 'Pie Chart'], key="chart")
                 fig = visualize_component_count(component_count, chart_type)
