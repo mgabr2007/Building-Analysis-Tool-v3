@@ -156,7 +156,7 @@ def visualize_component_count(component_count, chart_type='Bar Chart'):
     return fig
 
 def visualize_data(df, columns):
-    for column in columns):
+    for column in columns:
         if pd.api.types.is_numeric_dtype(df[column]):
             fig = px.histogram(df, x=column)
             st.plotly_chart(fig)
