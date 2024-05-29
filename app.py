@@ -213,8 +213,8 @@ def compare_ifc_files_ui():
     This step-by-step process will help you understand the detailed differences in building components between the two IFC files, as well as provide an overall summary of the differences.
     """)
 
-    file_path1, _ = handle_file_upload("first IFC", ['ifc'])
-    file_path2, _ = handle_file_upload("second IFC", ['ifc'])
+    file_path1, file_name1 = handle_file_upload("first IFC", ['ifc'])
+    file_path2, file_name2 = handle_file_upload("second IFC", ['ifc'])
 
     if file_path1 and file_path2:
         with st.spinner('Processing IFC files...'):
@@ -239,6 +239,16 @@ def compare_ifc_files_ui():
                         differences = [comparison_result[comp]['Difference'] for comp in all_component_types]
                         fig_pie = go.Figure(data=[go.Pie(labels=all_component_types, values=differences, title='Overall Differences in Components')])
                         st.plotly_chart(fig_pie)
+
+                # Display version control information for both files
+                st.write("### Version Control Information")
+                if 'versions' in st.session_state:
+                    versions = st.session_state['versions']
+                    st.write(f"**{file_name1} Versions:**")
+                    st.write(versions.get(file_name1, "No versions available"))
+                    st.write(f"**{file_name2} Versions:**")
+                    st.write(versions.get(file_name2, "No versions available"))
+
             os.remove(file_path1)
             os.remove(file_path2)
 
