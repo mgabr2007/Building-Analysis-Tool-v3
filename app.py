@@ -76,9 +76,6 @@ def get_file_hash(file_path):
 
 def add_version_control_info(ifc_file, file_name, version_info):
     project = ifc_file.by_type('IfcProject')[0]
-    existing_versions = getattr(project, 'version_control', [])
-    existing_versions.append(version_info)
-    project.version_control = existing_versions
     ifcopenshell.api.run("pset.add_pset", ifc_file, product=project, name="VersionControl", properties={
         "FileName": file_name,
         "Hash": version_info['hash'],
@@ -159,7 +156,7 @@ def visualize_component_count(component_count, chart_type='Bar Chart'):
     return fig
 
 def visualize_data(df, columns):
-    for column in columns:
+    for column in columns):
         if pd.api.types.is_numeric_dtype(df[column]):
             fig = px.histogram(df, x=column)
             st.plotly_chart(fig)
