@@ -182,12 +182,21 @@ def ifc_file_analysis():
                 version_info = version_control(file_path, file_name)
                 if version_info:
                     add_version_control_info(ifc_file, file_name, version_info)
+                    updated_file_path = save_ifc_file(ifc_file)
+                    st.success(f"Version information added to {file_name}.")
+                    with open(updated_file_path, 'rb') as f:
+                        st.download_button('Download updated IFC file', f, file_name)
                 component_count = count_building_components(ifc_file)
                 chart_type = st.radio("Chart Type", options=['Bar Chart', 'Pie Chart'], key="chart")
                 fig = visualize_component_count(component_count, chart_type)
                 st.plotly_chart(fig)
                 detailed_analysis_ui(ifc_file)
             os.remove(file_path)
+
+def save_ifc_file(ifc_file):
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.ifc') as tmp_file:
+        ifc_file.write(tmp_file.name)
+        return tmp_file.name
 
 def detailed_analysis_ui(ifc_file):
     with st.expander("Show Detailed Component Analysis"):
