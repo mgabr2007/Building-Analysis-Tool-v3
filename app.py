@@ -78,7 +78,14 @@ def version_control(file_path, file_name):
     versions = st.session_state.get('versions', {})
     if file_name not in versions:
         versions[file_name] = []
-    versions[file_name].append({'hash': file_hash, 'timestamp': datetime.now()})
+    versions[file_name].append({
+        'hash': file_hash,
+        'timestamp': datetime.now(),
+        'author': st.text_input(f"Author of {file_name}", key=f"author_{file_name}"),
+        'description': st.text_area(f"Change description for {file_name}", key=f"description_{file_name}"),
+        'approval_status': st.selectbox(f"Approval status of {file_name}", ['Pending', 'Approved', 'Rejected'], key=f"approval_{file_name}"),
+        'comments': st.text_area(f"Comments for {file_name}", key=f"comments_{file_name}")
+    })
     st.session_state['versions'] = versions
     st.write("### Version Control")
     st.write(versions[file_name])
@@ -228,16 +235,16 @@ def compare_ifc_files_ui():
                 if selected_component:
                     component_data = comparison_result[selected_component]
                     fig = go.Figure(data=[
-                        go.Bar(name="File 1", x=[selected_component], y=[component_data['File 1 Count']], marker_color='indianred'),
-                        go.Bar(name="File 2", x=[selected_component], y=[component_data['File 2 Count']], marker_color='lightseagreen'),
+                        go.Bar(name=f"{file_name1} - File 1", x=[selected_component], y=[component_data['File 1 Count']], marker_color='indianred'),
+                        go.Bar(name=f"{file_name2} - File 2", x=[selected_component], y=[component_data['File 2 Count']], marker_color='lightseagreen'),
                         go.Bar(name='Difference', x=[selected_component], y=[component_data['Difference']], marker_color='lightslategray')
                     ])
-                    fig.update_layout(barmode='group', title_text=f'Comparison of {selected_component}', xaxis_title="Component Type", yaxis_title="Count")
+                    fig.update_layout(barmode='group', title_text=f'Comparison of {selected_component} in {file_name1} and {file_name2}', xaxis_title="Component Type", yaxis_title="Count")
                     st.plotly_chart(fig)
 
                     if st.button("Show Overall Comparison"):
                         differences = [comparison_result[comp]['Difference'] for comp in all_component_types]
-                        fig_pie = go.Figure(data=[go.Pie(labels=all_component_types, values=differences, title='Overall Differences in Components')])
+                        fig_pie = go.Figure(data=[go.Pie(labels=all_component_types, values=differences, title=f'Overall Differences in Components between {file_name1} and {file_name2}')])
                         st.plotly_chart(fig_pie)
 
                 # Display version control information for both files
