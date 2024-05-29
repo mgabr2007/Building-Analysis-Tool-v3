@@ -76,7 +76,9 @@ def get_file_hash(file_path):
 
 def add_version_control_info(ifc_file, file_name, version_info):
     project = ifc_file.by_type('IfcProject')[0]
-    ifcopenshell.api.run("pset.add_pset", ifc_file, product=project, name="VersionControl", properties={
+    pset_name = "VersionControl"
+    pset = ifcopenshell.api.run("pset.add_pset", ifc_file, product=project, name=pset_name)
+    ifcopenshell.api.run("pset.edit_pset", ifc_file, pset=pset, properties={
         "FileName": file_name,
         "Hash": version_info['hash'],
         "Timestamp": version_info['timestamp'].isoformat(),
