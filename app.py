@@ -62,7 +62,10 @@ def display_metadata(ifc_file):
         st.write(f"Name: {project.Name}")
         st.write(f"Description: {project.Description}")
         st.write(f"Phase: {project.Phase}")
-        st.write(f"Time Stamp: {datetime.fromtimestamp(project.CreationDate)}")
+        if hasattr(project, 'CreationDate'):
+            st.write(f"Time Stamp: {datetime.fromtimestamp(project.CreationDate)}")
+        else:
+            st.write("Time Stamp: Not available")
 
 # Version Control
 def get_file_hash(file_path):
