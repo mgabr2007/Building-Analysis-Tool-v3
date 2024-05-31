@@ -172,6 +172,20 @@ def generate_insights(df):
 
 # Main Analysis Functions
 def ifc_file_analysis():
+    st.write("""
+    ### Instructions for Analyzing IFC Files:
+
+    1. **Upload an IFC File:** Click on the "Choose a IFC file" button to upload an IFC (Industry Foundation Classes) file.
+
+    2. **View Project Metadata:** After the file is processed, metadata of the project, including name, description, and phase, will be displayed.
+
+    3. **Version Control Information:** Enter author details, change description, approval status, and comments. Click on "Save Version Information" to save.
+
+    4. **Component Count Visualization:** Choose a chart type (Bar Chart or Pie Chart) to visualize the count of building components.
+
+    5. **Detailed Analysis:** Expand the "Show Detailed Component Analysis" section, select a product type, and view detailed analysis of the selected product type.
+    """)
+
     file_path, file_name = handle_file_upload("IFC", ['ifc'])
     if file_path:
         with st.spinner('Processing IFC file...'):
@@ -211,6 +225,18 @@ def detailed_analysis_ui(ifc_file):
         detailed_analysis(ifc_file, selected_product_type, sort_by)
 
 def excel_file_analysis():
+    st.write("""
+    ### Instructions for Analyzing Excel Files:
+
+    1. **Upload an Excel File:** Click on the "Choose an Excel file" button to upload an Excel spreadsheet.
+
+    2. **Select Columns to Display:** Choose the columns you want to display from the uploaded Excel file.
+
+    3. **Visualize Data:** Click on "Visualize Data" to generate charts for the selected columns.
+
+    4. **Generate Insights:** Click on "Generate Insights" to view descriptive statistics and other insights from the data.
+    """)
+
     file_path, _ = handle_file_upload("Excel", ['xlsx'])
     if file_path:
         df = read_excel(file_path)
@@ -304,21 +330,21 @@ def compare_ifc_files_ui():
 def welcome_page():
     st.title("IFC and Excel File Analysis Tool")
     st.write("""
+    ### Welcome to the IFC and Excel File Analysis Tool
 
-    This Streamlit application provides an interactive interface for analyzing
-    IFC (Industry Foundation Classes) files and Excel spreadsheets. It allows
-    users to visualize component counts in IFC files and perform data analysis
-    and visualization on Excel files.
+    This Streamlit application provides an interactive interface for analyzing IFC (Industry Foundation Classes) files and Excel spreadsheets. It allows users to visualize component counts in IFC files and perform data analysis and visualization on Excel files.
 
-    License:
-    This project is licensed under the GNU General Public License v3.0.
-    For more details, see the LICENSE file in the root directory of this source tree
-    or visit https://www.gnu.org/licenses/gpl-3.0.en.html.
+    #### Features:
 
-    Copyright:
-    Copyright (C) [2024] [Mostafa Gabr].
-    All rights reserved.
+    - **IFC File Analysis:** Upload and analyze IFC files to view project metadata, perform component count visualization, and conduct detailed analysis of building components.
+    - **Excel File Analysis:** Upload and analyze Excel spreadsheets to select and visualize data columns, and generate insights from the data.
+    - **IFC File Comparison:** Compare the components of two IFC files to identify differences and view detailed and overall comparison charts.
 
+    #### License:
+    This project is licensed under the GNU General Public License v3.0. For more details, see the LICENSE file in the root directory of this source tree or visit [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+
+    #### Copyright:
+    Copyright (C) [2024] [Mostafa Gabr]. All rights reserved.
     """)
 
 def main():
