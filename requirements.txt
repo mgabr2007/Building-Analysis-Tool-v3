@@ -4,6 +4,6 @@ numpy
 ifcopenshell
 matplotlib
 plotly
-fpdf2
-openpyxl
-kaleido
+fpdf
+psutil
+plotly-orca
