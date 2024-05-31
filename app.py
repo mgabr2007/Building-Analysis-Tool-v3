@@ -13,6 +13,7 @@ from datetime import datetime
 import hashlib
 import logging
 from fpdf import FPDF
+import plotly.io as pio
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -106,13 +107,17 @@ def visualize_component_count(component_count, chart_type='Bar Chart'):
     return fig
 
 def visualize_data(df, columns):
+    figs = []
     for column in columns:
         if pd.api.types.is_numeric_dtype(df[column]):
             fig = px.histogram(df, x=column)
             st.plotly_chart(fig)
+            figs.append(fig)
         else:
             fig = px.bar(df, x=column, title=f"Bar chart of {column}")
             st.plotly_chart(fig)
+            figs.append(fig)
+    return figs
 
 def generate_insights(df):
     if not df.empty:
@@ -141,7 +146,12 @@ class PDF(FPDF):
         self.chapter_title(title)
         self.chapter_body(body)
 
-def export_analysis_to_pdf(ifc_metadata, component_count):
+    def add_image(self, image_path, title):
+        self.add_page()
+        self.chapter_title(title)
+        self.image(image_path, x=10, y=30, w=190)
+
+def export_analysis_to_pdf(ifc_metadata, component_count, figs):
     pdf = PDF()
     pdf.add_page()
 
@@ -157,6 +167,11 @@ def export_analysis_to_pdf(ifc_metadata, component_count):
     pdf.chapter_title("Component Count")
     for component, count in component_count.items():
         pdf.chapter_body(f"{component}: {count}")
+
+    for idx, fig in enumerate(figs):
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+            fig.write_image(tmp_file.name)
+            pdf.add_image(tmp_file.name, f"Chart {idx + 1}")
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         pdf_file_path = tmp_file.name
@@ -198,8 +213,9 @@ def ifc_file_analysis():
                     "CreationDate": datetime.fromtimestamp(ifc_file.by_type('IfcProject')[0].CreationDate) if hasattr(ifc_file.by_type('IfcProject')[0], 'CreationDate') else 'Not available'
                 }
 
+                figs = [fig]
                 if st.button("Export Analysis as PDF"):
-                    pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count)
+                    pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count, figs)
                     with open(pdf_file_path, 'rb') as f:
                         st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
             os.remove(file_path)
@@ -242,10 +258,15 @@ def excel_file_analysis():
             selected_columns = st.multiselect("Select columns to display", df.columns.tolist(), default=df.columns.tolist(), key="columns")
             if selected_columns:
                 st.dataframe(df[selected_columns])
+                figs = []
                 if st.button("Visualize Data", key="visualize"):
-                    visualize_data(df, selected_columns)
+                    figs = visualize_data(df, selected_columns)
                 if st.button("Generate Insights", key="insights"):
                     generate_insights(df)
+                if figs and st.button("Export Analysis as PDF"):
+                    pdf_file_path = export_analysis_to_pdf({"Name": "Excel Data Analysis"}, {}, figs)
+                    with open(pdf_file_path, 'rb') as f:
+                        st.download_button('Download PDF Report', f, 'excel_analysis.pdf')
             os.remove(file_path)
 
 # Comparison Analysis Functions
@@ -297,6 +318,7 @@ def compare_ifc_files_ui():
                 all_component_types = list(comparison_result.keys())
                 selected_component = st.selectbox("Select a component type for detailed comparison:", all_component_types, key="component_type")
 
+                figs = []
                 if selected_component:
                     component_data = comparison_result[selected_component]
                     fig = go.Figure(data=[
@@ -306,11 +328,18 @@ def compare_ifc_files_ui():
                     ])
                     fig.update_layout(barmode='group', title_text=f'Comparison of {selected_component} in {file_name1} and {file_name2}', xaxis_title="Component Type", yaxis_title="Count")
                     st.plotly_chart(fig)
+                    figs.append(fig)
 
                     if st.button("Show Overall Comparison"):
                         differences = [comparison_result[comp]['Difference'] for comp in all_component_types]
                         fig_pie = go.Figure(data=[go.Pie(labels=all_component_types, values=differences, title=f'Overall Differences in Components between {file_name1} and {file_name2}')])
                         st.plotly_chart(fig_pie)
+                        figs.append(fig_pie)
+
+                if figs and st.button("Export Analysis as PDF"):
+                    pdf_file_path = export_analysis_to_pdf({"Name": "IFC Files Comparison"}, {}, figs)
+                    with open(pdf_file_path, 'rb') as f:
+                        st.download_button('Download PDF Report', f, 'ifc_comparison.pdf')
 
             os.remove(file_path1)
             os.remove(file_path2)
