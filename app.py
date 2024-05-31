@@ -199,10 +199,10 @@ def export_analysis_to_pdf(ifc_metadata, component_count, version_info):
 
     pdf.chapter_title("IFC File Metadata")
     metadata_body = f"""
-    Name: {ifc_metadata['Name']}
-    Description: {ifc_metadata['Description']}
-    Phase: {ifc_metadata['Phase']}
-    Creation Date: {ifc_metadata['CreationDate']}
+    Name: {ifc_metadata.get('Name', 'Not available')}
+    Description: {ifc_metadata.get('Description', 'Not available')}
+    Phase: {ifc_metadata.get('Phase', 'Not available')}
+    Creation Date: {ifc_metadata.get('CreationDate', 'Not available')}
     """
     pdf.chapter_body(metadata_body)
 
@@ -267,7 +267,7 @@ def ifc_file_analysis():
                     "Name": ifc_file.by_type('IfcProject')[0].Name,
                     "Description": ifc_file.by_type('IfcProject')[0].Description,
                     "Phase": ifc_file.by_type('IfcProject')[0].Phase,
-                    "CreationDate": if hasattr(ifc_file.by_type('IfcProject')[0], 'CreationDate') else 'Not available'
+                    "CreationDate": datetime.fromtimestamp(ifc_file.by_type('IfcProject')[0].CreationDate) if hasattr(ifc_file.by_type('IfcProject')[0], 'CreationDate') else 'Not available'
                 }
 
                 if st.button("Export Analysis as PDF"):
