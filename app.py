@@ -206,16 +206,17 @@ def export_analysis_to_pdf(ifc_metadata, component_count, version_info):
     """
     pdf.chapter_body(metadata_body)
 
-    pdf.chapter_title("Version Control Information")
-    version_body = f"""
-    Author: {version_info['author']}
-    Description: {version_info['description']}
-    Approval Status: {version_info['approval_status']}
-    Comments: {version_info['comments']}
-    Timestamp: {version_info['timestamp']}
-    Hash: {version_info['hash']}
-    """
-    pdf.chapter_body(version_body)
+    if version_info:
+        pdf.chapter_title("Version Control Information")
+        version_body = f"""
+        Author: {version_info.get('author', 'Not available')}
+        Description: {version_info.get('description', 'Not available')}
+        Approval Status: {version_info.get('approval_status', 'Not available')}
+        Comments: {version_info.get('comments', 'Not available')}
+        Timestamp: {version_info.get('timestamp', 'Not available')}
+        Hash: {version_info.get('hash', 'Not available')}
+        """
+        pdf.chapter_body(version_body)
 
     pdf.chapter_title("Component Count")
     for component, count in component_count.items():
@@ -225,6 +226,7 @@ def export_analysis_to_pdf(ifc_metadata, component_count, version_info):
         pdf_file_path = tmp_file.name
         pdf.output(pdf_file_path)
     return pdf_file_path
+
 
 # Main Analysis Functions
 def ifc_file_analysis():
@@ -271,9 +273,12 @@ def ifc_file_analysis():
                 }
 
                 if st.button("Export Analysis as PDF"):
-                    pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count, version_info)
-                    with open(pdf_file_path, 'rb') as f:
-                        st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
+                    if version_info:
+                        pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count, version_info)
+                        with open(pdf_file_path, 'rb') as f:
+                            st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
+                    else:
+                        st.error("Version information is missing. Please save version information before exporting to PDF.")
             os.remove(file_path)
 
 def save_ifc_file(ifc_file):
