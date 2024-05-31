@@ -59,59 +59,6 @@ def display_metadata(ifc_file):
         else:
             st.write("Time Stamp: Not available")
 
-# Version Control
-def get_file_hash(file_path):
-    with open(file_path, "rb") as f:
-        bytes = f.read()
-        return hashlib.md5(bytes).hexdigest()
-
-def add_version_control_info(ifc_file, file_name, version_info):
-    try:
-        project = ifc_file.by_type('IfcProject')[0]
-        pset_name = "VersionControl"
-        pset = ifcopenshell.api.run("pset.add_pset", ifc_file, product=project, name=pset_name)
-        ifcopenshell.api.run("pset.edit_pset", ifc_file, pset=pset, properties={
-            "FileName": file_name,
-            "Hash": version_info['hash'],
-            "Timestamp": version_info['timestamp'].isoformat(),
-            "Author": version_info['author'],
-            "Description": version_info['description'],
-            "ApprovalStatus": version_info['approval_status'],
-            "Comments": version_info['comments']
-        })
-    except Exception as e:
-        error_message = f"Error adding version control information: {e}"
-        logging.error(error_message)
-        st.error(error_message)
-
-def version_control(file_path, file_name):
-    file_hash = get_file_hash(file_path)
-    if 'versions' not in st.session_state:
-        st.session_state['versions'] = {}
-
-    if file_name not in st.session_state['versions']:
-        st.session_state['versions'][file_name] = []
-
-    author = st.text_input(f"Author of {file_name}", key=f"author_{file_name}")
-    description = st.text_area(f"Change description for {file_name}", key=f"description_{file_name}")
-    approval_status = st.selectbox(f"Approval status of {file_name}", ['Pending', 'Approved', 'Rejected'], key=f"approval_{file_name}")
-    comments = st.text_area(f"Comments for {file_name}", key=f"comments_{file_name}")
-
-    if st.button(f"Save Version Information for {file_name}"):
-        version_info = {
-            'hash': file_hash,
-            'timestamp': datetime.now(),
-            'author': author,
-            'description': description,
-            'approval_status': approval_status,
-            'comments': comments
-        }
-        st.session_state['versions'][file_name].append(version_info)
-        st.success(f"Version information for {file_name} saved.")
-        logging.info(f"Version information saved: {version_info}")
-        return version_info
-    return None
-
 # IFC Analysis Functions
 def count_building_components(ifc_file):
     component_count = defaultdict(int)
@@ -194,7 +141,7 @@ class PDF(FPDF):
         self.chapter_title(title)
         self.chapter_body(body)
 
-def export_analysis_to_pdf(ifc_metadata, component_count, version_info):
+def export_analysis_to_pdf(ifc_metadata, component_count):
     pdf = PDF()
     pdf.add_page()
 
@@ -206,18 +153,6 @@ def export_analysis_to_pdf(ifc_metadata, component_count, version_info):
     Creation Date: {ifc_metadata.get('CreationDate', 'Not available')}
     """
     pdf.chapter_body(metadata_body)
-
-    if version_info:
-        pdf.chapter_title("Version Control Information")
-        version_body = f"""
-        Author: {version_info.get('author', 'Not available')}
-        Description: {version_info.get('description', 'Not available')}
-        Approval Status: {version_info.get('approval_status', 'Not available')}
-        Comments: {version_info.get('comments', 'Not available')}
-        Timestamp: {version_info.get('timestamp', 'Not available')}
-        Hash: {version_info.get('hash', 'Not available')}
-        """
-        pdf.chapter_body(version_body)
 
     pdf.chapter_title("Component Count")
     for component, count in component_count.items():
@@ -237,13 +172,11 @@ def ifc_file_analysis():
 
     2. **View Project Metadata:** After the file is processed, metadata of the project, including name, description, and phase, will be displayed.
 
-    3. **Version Control Information:** Enter author details, change description, approval status, and comments. Click on "Save Version Information" to save.
+    3. **Component Count Visualization:** Choose a chart type (Bar Chart or Pie Chart) to visualize the count of building components.
 
-    4. **Component Count Visualization:** Choose a chart type (Bar Chart or Pie Chart) to visualize the count of building components.
+    4. **Detailed Analysis:** Expand the "Show Detailed Component Analysis" section, select a product type, and view detailed analysis of the selected product type.
 
-    5. **Detailed Analysis:** Expand the "Show Detailed Component Analysis" section, select a product type, and view detailed analysis of the selected product type.
-
-    6. **Export Analysis as PDF:** Click the "Export Analysis as PDF" button to download a PDF report of the analysis.
+    5. **Export Analysis as PDF:** Click the "Export Analysis as PDF" button to download a PDF report of the analysis.
     """)
 
     file_path, file_name = handle_file_upload("IFC", ['ifc'])
@@ -252,14 +185,6 @@ def ifc_file_analysis():
             ifc_file = process_ifc_file(file_path)
             if ifc_file:
                 display_metadata(ifc_file)
-                version_info = version_control(file_path, file_name)
-                logging.info(f"Version info: {version_info}")
-                if version_info:
-                    add_version_control_info(ifc_file, file_name, version_info)
-                    updated_file_path = save_ifc_file(ifc_file)
-                    st.success(f"Version information added to {file_name}.")
-                    with open(updated_file_path, 'rb') as f:
-                        st.download_button('Download updated IFC file', f, file_name)
                 component_count = count_building_components(ifc_file)
                 chart_type = st.radio("Chart Type", options=['Bar Chart', 'Pie Chart'], key="chart")
                 fig = visualize_component_count(component_count, chart_type)
@@ -274,12 +199,9 @@ def ifc_file_analysis():
                 }
 
                 if st.button("Export Analysis as PDF"):
-                    if version_info:
-                        pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count, version_info)
-                        with open(pdf_file_path, 'rb') as f:
-                            st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
-                    else:
-                        st.error("Version information is missing. Please save version information before exporting to PDF.")
+                    pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count)
+                    with open(pdf_file_path, 'rb') as f:
+                        st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
             os.remove(file_path)
 
 def save_ifc_file(ifc_file):
@@ -389,15 +311,6 @@ def compare_ifc_files_ui():
                         differences = [comparison_result[comp]['Difference'] for comp in all_component_types]
                         fig_pie = go.Figure(data=[go.Pie(labels=all_component_types, values=differences, title=f'Overall Differences in Components between {file_name1} and {file_name2}')])
                         st.plotly_chart(fig_pie)
-
-                # Display version control information for both files
-                st.write("### Version Control Information")
-                if 'versions' in st.session_state:
-                    versions = st.session_state['versions']
-                    st.write(f"**{file_name1} Versions:**")
-                    st.write(versions.get(file_name1, "No versions available"))
-                    st.write(f"**{file_name2} Versions:**")
-                    st.write(versions.get(file_name2, "No versions available"))
 
             os.remove(file_path1)
             os.remove(file_path2)
