@@ -14,7 +14,7 @@ import hashlib
 import logging
 from fpdf import FPDF
 import plotly.io as pio
-import kaleido
+import plotly.io.orca as orca
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -176,7 +176,7 @@ def export_analysis_to_pdf(ifc_metadata, component_count, figs):
         with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
             try:
                 fig.update_layout(paper_bgcolor='white', plot_bgcolor='white', font_color='black')
-                fig.write_image(tmp_file.name, format='png')
+                fig.write_image(tmp_file.name, format='png', engine='orca')
                 pdf.add_image(tmp_file.name, f"Chart {idx + 1}")
             except Exception as e:
                 logging.error(f"Error exporting chart to image: {e}")
