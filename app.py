@@ -108,6 +108,7 @@ def version_control(file_path, file_name):
         }
         st.session_state['versions'][file_name].append(version_info)
         st.success(f"Version information for {file_name} saved.")
+        logging.info(f"Version information saved: {version_info}")
         return version_info
     return None
 
@@ -227,7 +228,6 @@ def export_analysis_to_pdf(ifc_metadata, component_count, version_info):
         pdf.output(pdf_file_path)
     return pdf_file_path
 
-
 # Main Analysis Functions
 def ifc_file_analysis():
     st.write("""
@@ -253,6 +253,7 @@ def ifc_file_analysis():
             if ifc_file:
                 display_metadata(ifc_file)
                 version_info = version_control(file_path, file_name)
+                logging.info(f"Version info: {version_info}")
                 if version_info:
                     add_version_control_info(ifc_file, file_name, version_info)
                     updated_file_path = save_ifc_file(ifc_file)
