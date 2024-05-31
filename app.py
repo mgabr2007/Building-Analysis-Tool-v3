@@ -1,21 +1,3 @@
-"""
-IFC and Excel File Analysis Tool with ISO 19650 Enhancements
-
-This Streamlit application provides an interactive interface for analyzing
-IFC (Industry Foundation Classes) files and Excel spreadsheets. It allows
-users to visualize component counts in IFC files and perform data analysis
-and visualization on Excel files.
-
-License:
-This project is licensed under the GNU General Public License v3.0.
-For more details, see the LICENSE file in the root directory of this source tree
-or visit https://www.gnu.org/licenses/gpl-3.0.en.html.
-
-Copyright:
-Copyright (C) [2024] [Mostafa Gabr].
-All rights reserved.
-
-"""
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -25,10 +7,14 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import tempfile
 import os
-import plotly.express as px  # For interactive plots
+import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import hashlib
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Utility Functions
 def handle_file_upload(upload_type, file_types):
@@ -44,14 +30,18 @@ def process_ifc_file(file_path):
     try:
         return ifcopenshell.open(file_path)
     except Exception as e:
-        st.error(f"Error opening IFC file: {e}")
+        error_message = f"Error opening IFC file: {e}"
+        logging.error(error_message)
+        st.error(error_message)
         return None
 
 def read_excel(file):
     try:
         return pd.read_excel(file, engine='openpyxl')
     except Exception as e:
-        st.error(f"Failed to read Excel file: {e}")
+        error_message = f"Failed to read Excel file: {e}"
+        logging.error(error_message)
+        st.error(error_message)
         return pd.DataFrame()
 
 # Metadata Management
@@ -75,18 +65,23 @@ def get_file_hash(file_path):
         return hashlib.md5(bytes).hexdigest()
 
 def add_version_control_info(ifc_file, file_name, version_info):
-    project = ifc_file.by_type('IfcProject')[0]
-    pset_name = "VersionControl"
-    pset = ifcopenshell.api.run("pset.add_pset", ifc_file, product=project, name=pset_name)
-    ifcopenshell.api.run("pset.edit_pset", ifc_file, pset=pset, properties={
-        "FileName": file_name,
-        "Hash": version_info['hash'],
-        "Timestamp": version_info['timestamp'].isoformat(),
-        "Author": version_info['author'],
-        "Description": version_info['description'],
-        "ApprovalStatus": version_info['approval_status'],
-        "Comments": version_info['comments']
-    })
+    try:
+        project = ifc_file.by_type('IfcProject')[0]
+        pset_name = "VersionControl"
+        pset = ifcopenshell.api.run("pset.add_pset", ifc_file, product=project, name=pset_name)
+        ifcopenshell.api.run("pset.edit_pset", ifc_file, pset=pset, properties={
+            "FileName": file_name,
+            "Hash": version_info['hash'],
+            "Timestamp": version_info['timestamp'].isoformat(),
+            "Author": version_info['author'],
+            "Description": version_info['description'],
+            "ApprovalStatus": version_info['approval_status'],
+            "Comments": version_info['comments']
+        })
+    except Exception as e:
+        error_message = f"Error adding version control information: {e}"
+        logging.error(error_message)
+        st.error(error_message)
 
 def version_control(file_path, file_name):
     file_hash = get_file_hash(file_path)
@@ -122,7 +117,9 @@ def count_building_components(ifc_file):
         for ifc_entity in ifc_file.by_type('IfcProduct'):
             component_count[ifc_entity.is_a()] += 1
     except Exception as e:
-        st.error(f"Error processing IFC file: {e}")
+        error_message = f"Error processing IFC file: {e}"
+        logging.error(error_message)
+        st.error(error_message)
     return component_count
 
 def detailed_analysis(ifc_file, product_type, sort_by=None):
@@ -133,7 +130,9 @@ def detailed_analysis(ifc_file, product_type, sort_by=None):
             type_name = product_name.split(':')[0] if product_name else "Unnamed"
             product_count[type_name] += 1
     except Exception as e:
-        st.error(f"Error during detailed analysis: {e}")
+        error_message = f"Error during detailed analysis: {e}"
+        logging.error(error_message)
+        st.error(error_message)
         return
 
     labels, values = zip(*product_count.items()) if product_count else ((), ())
@@ -194,9 +193,15 @@ def ifc_file_analysis():
             os.remove(file_path)
 
 def save_ifc_file(ifc_file):
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.ifc') as tmp_file:
-        ifc_file.write(tmp_file.name)
-        return tmp_file.name
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.ifc') as tmp_file:
+            ifc_file.write(tmp_file.name)
+            return tmp_file.name
+    except Exception as e:
+        error_message = f"Error saving IFC file: {e}"
+        logging.error(error_message)
+        st.error(error_message)
+        return None
 
 def detailed_analysis_ui(ifc_file):
     with st.expander("Show Detailed Component Analysis"):
