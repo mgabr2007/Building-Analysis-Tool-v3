@@ -13,8 +13,8 @@ from datetime import datetime
 import hashlib
 import logging
 from fpdf import FPDF
-import plotly.io as pio
 import plotly.io.orca as orca
+import psutil
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
