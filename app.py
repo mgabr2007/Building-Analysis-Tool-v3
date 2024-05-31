@@ -171,7 +171,7 @@ def export_analysis_to_pdf(ifc_metadata, component_count, figs):
     for idx, fig in enumerate(figs):
         with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
             try:
-                fig.write_image(tmp_file.name)
+                fig.write_image(tmp_file.name, format='png')
                 pdf.add_image(tmp_file.name, f"Chart {idx + 1}")
             except Exception as e:
                 logging.error(f"Error exporting chart to image: {e}")
