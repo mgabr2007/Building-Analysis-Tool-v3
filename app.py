@@ -88,7 +88,7 @@ def detailed_analysis(ifc_file, product_type, sort_by=None):
     labels, values = zip(*product_count.items()) if product_count else ((), ())
     if values:
         fig = px.pie(values=values, names=labels, title=f"Distribution of {product_type} Products by Type")
-        fig.update_layout(paper_bgcolor='white', plot_bgcolor='white')
+        fig.update_layout(paper_bgcolor='white', plot_bgcolor='white', font_color='black')
         st.plotly_chart(fig)
 
         if sort_by:
@@ -104,7 +104,7 @@ def visualize_component_count(component_count, chart_type='Bar Chart'):
         fig = px.bar(x=labels, y=values)
     elif chart_type == 'Pie Chart':
         fig = px.pie(values=values, names=labels)
-    fig.update_layout(transition_duration=500, paper_bgcolor='white', plot_bgcolor='white')
+    fig.update_layout(transition_duration=500, paper_bgcolor='white', plot_bgcolor='white', font_color='black')
     return fig
 
 def visualize_data(df, columns):
@@ -112,12 +112,12 @@ def visualize_data(df, columns):
     for column in columns:
         if pd.api.types.is_numeric_dtype(df[column]):
             fig = px.histogram(df, x=column)
-            fig.update_layout(paper_bgcolor='white', plot_bgcolor='white')
+            fig.update_layout(paper_bgcolor='white', plot_bgcolor='white', font_color='black')
             st.plotly_chart(fig)
             figs.append(fig)
         else:
             fig = px.bar(df, x=column, title=f"Bar chart of {column}")
-            fig.update_layout(paper_bgcolor='white', plot_bgcolor='white')
+            fig.update_layout(paper_bgcolor='white', plot_bgcolor='white', font_color='black')
             st.plotly_chart(fig)
             figs.append(fig)
     return figs
@@ -333,14 +333,14 @@ def compare_ifc_files_ui():
                         go.Bar(name=f"{file_name2} - File 2", x=[selected_component], y=[component_data['File 2 Count']], marker_color='lightseagreen'),
                         go.Bar(name='Difference', x=[selected_component], y=[component_data['Difference']], marker_color='lightslategray')
                     ])
-                    fig.update_layout(barmode='group', title_text=f'Comparison of {selected_component} in {file_name1} and {file_name2}', xaxis_title="Component Type", yaxis_title="Count", paper_bgcolor='white', plot_bgcolor='white')
+                    fig.update_layout(barmode='group', title_text=f'Comparison of {selected_component} in {file_name1} and {file_name2}', xaxis_title="Component Type", yaxis_title="Count", paper_bgcolor='white', plot_bgcolor='white', font_color='black')
                     st.plotly_chart(fig)
                     figs.append(fig)
 
                     if st.button("Show Overall Comparison"):
                         differences = [comparison_result[comp]['Difference'] for comp in all_component_types]
                         fig_pie = go.Figure(data=[go.Pie(labels=all_component_types, values=differences, title=f'Overall Differences in Components between {file_name1} and {file_name2}')])
-                        fig_pie.update_layout(paper_bgcolor='white', plot_bgcolor='white')
+                        fig_pie.update_layout(paper_bgcolor='white', plot_bgcolor='white', font_color='black')
                         st.plotly_chart(fig_pie)
                         figs.append(fig_pie)
 
