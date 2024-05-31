@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 import hashlib
 import logging
+from fpdf import FPDF
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -170,6 +171,61 @@ def generate_insights(df):
         st.write("Descriptive Statistics:", df.describe())
         # Placeholder for more sophisticated analysis or predictive modeling
 
+# PDF Export Function
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'IFC and Excel File Analysis Report', 0, 1, 'C')
+        self.ln(10)
+
+    def chapter_title(self, title):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, title, 0, 1, 'L')
+        self.ln(5)
+
+    def chapter_body(self, body):
+        self.set_font('Arial', '', 12)
+        self.multi_cell(0, 10, body)
+        self.ln()
+
+    def add_chapter(self, title, body):
+        self.add_page()
+        self.chapter_title(title)
+        self.chapter_body(body)
+
+def export_analysis_to_pdf(ifc_metadata, component_count, version_info):
+    pdf = PDF()
+    pdf.add_page()
+
+    pdf.chapter_title("IFC File Metadata")
+    metadata_body = f"""
+    Name: {ifc_metadata['Name']}
+    Description: {ifc_metadata['Description']}
+    Phase: {ifc_metadata['Phase']}
+    Creation Date: {ifc_metadata['CreationDate']}
+    """
+    pdf.chapter_body(metadata_body)
+
+    pdf.chapter_title("Version Control Information")
+    version_body = f"""
+    Author: {version_info['author']}
+    Description: {version_info['description']}
+    Approval Status: {version_info['approval_status']}
+    Comments: {version_info['comments']}
+    Timestamp: {version_info['timestamp']}
+    Hash: {version_info['hash']}
+    """
+    pdf.chapter_body(version_body)
+
+    pdf.chapter_title("Component Count")
+    for component, count in component_count.items():
+        pdf.chapter_body(f"{component}: {count}")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        pdf_file_path = tmp_file.name
+        pdf.output(pdf_file_path)
+    return pdf_file_path
+
 # Main Analysis Functions
 def ifc_file_analysis():
     st.write("""
@@ -184,6 +240,8 @@ def ifc_file_analysis():
     4. **Component Count Visualization:** Choose a chart type (Bar Chart or Pie Chart) to visualize the count of building components.
 
     5. **Detailed Analysis:** Expand the "Show Detailed Component Analysis" section, select a product type, and view detailed analysis of the selected product type.
+
+    6. **Export Analysis as PDF:** Click the "Export Analysis as PDF" button to download a PDF report of the analysis.
     """)
 
     file_path, file_name = handle_file_upload("IFC", ['ifc'])
@@ -204,6 +262,18 @@ def ifc_file_analysis():
                 fig = visualize_component_count(component_count, chart_type)
                 st.plotly_chart(fig)
                 detailed_analysis_ui(ifc_file)
+
+                ifc_metadata = {
+                    "Name": ifc_file.by_type('IfcProject')[0].Name,
+                    "Description": ifc_file.by_type('IfcProject')[0].Description,
+                    "Phase": ifc_file.by_type('IfcProject')[0].Phase,
+                    "CreationDate": if hasattr(ifc_file.by_type('IfcProject')[0], 'CreationDate') else 'Not available'
+                }
+
+                if st.button("Export Analysis as PDF"):
+                    pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count, version_info)
+                    with open(pdf_file_path, 'rb') as f:
+                        st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
             os.remove(file_path)
 
 def save_ifc_file(ifc_file):
