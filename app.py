@@ -160,20 +160,20 @@ class PDF(FPDF):
         self.chapter_title(title)
         self.image(image_path, x=10, y=30, w=190)
 
-def export_analysis_to_pdf(ifc_metadata, component_count, figs):
+def export_analysis_to_pdf(ifc_metadata, component_count, figs, author, subject, cover_text):
     pdf = PDF()
 
     # Cover Page
     pdf.add_page()
     pdf.set_font('Arial', 'B', 20)
-    pdf.cell(0, 10, 'IFC and Excel File Analysis Report', 0, 1, 'C')
+    pdf.cell(0, 10, subject, 0, 1, 'C')
     pdf.ln(20)
     pdf.set_font('Arial', 'I', 12)
     pdf.cell(0, 10, f'Date: {datetime.now().strftime("%Y-%m-%d")}', 0, 1, 'C')
-    pdf.cell(0, 10, 'Author: Mostafa Gabr', 0, 1, 'C')
+    pdf.cell(0, 10, f'Author: {author}', 0, 1, 'C')
     pdf.ln(30)
     pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, "This report contains the analysis of IFC and Excel files. The following sections include metadata, component counts, and visualizations of the data.")
+    pdf.multi_cell(0, 10, cover_text)
     pdf.ln(20)
 
     # IFC Metadata
@@ -251,8 +251,14 @@ def ifc_file_analysis():
                 }
 
                 figs = [fig]
+
+                # Get user inputs for cover page
+                author = st.text_input("Author", value="Mostafa Gabr")
+                subject = st.text_input("Main Subject", value="IFC and Excel File Analysis Report")
+                cover_text = st.text_area("Cover Page Text", value="This report contains the analysis of IFC and Excel files. The following sections include metadata, component counts, and visualizations of the data.")
+
                 if st.button("Export Analysis as PDF"):
-                    pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count, figs)
+                    pdf_file_path = export_analysis_to_pdf(ifc_metadata, component_count, figs, author, subject, cover_text)
                     with open(pdf_file_path, 'rb') as f:
                         st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
             os.remove(file_path)
@@ -301,7 +307,7 @@ def excel_file_analysis():
                 if st.button("Generate Insights", key="insights"):
                     generate_insights(df)
                 if figs and st.button("Export Analysis as PDF"):
-                    pdf_file_path = export_analysis_to_pdf({"Name": "Excel Data Analysis"}, {}, figs)
+                    pdf_file_path = export_analysis_to_pdf({"Name": "Excel Data Analysis"}, {}, figs, "Author Name", "Excel Data Analysis Report", "This report contains the analysis of Excel data.")
                     with open(pdf_file_path, 'rb') as f:
                         st.download_button('Download PDF Report', f, 'excel_analysis.pdf')
             os.remove(file_path)
@@ -375,7 +381,7 @@ def compare_ifc_files_ui():
                         figs.append(fig_pie)
 
                 if figs and st.button("Export Analysis as PDF"):
-                    pdf_file_path = export_analysis_to_pdf({"Name": "IFC Files Comparison"}, {}, figs)
+                    pdf_file_path = export_analysis_to_pdf({"Name": "IFC Files Comparison"}, {}, figs, "Author Name", "IFC Files Comparison Report", "This report contains the comparison analysis of two IFC files.")
                     with open(pdf_file_path, 'rb') as f:
                         st.download_button('Download PDF Report', f, 'ifc_comparison.pdf')
 
