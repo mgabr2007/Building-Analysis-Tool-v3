@@ -131,7 +131,7 @@ def generate_insights(df):
 # PDF Export Function
 class PDF(FPDF):
     def header(self):
-        self.set_font('Arial', 'B', 12)
+        self.set_font('Arial', 'B', 16)
         self.cell(0, 10, 'IFC and Excel File Analysis Report', 0, 1, 'C')
         self.ln(10)
 
@@ -162,14 +162,22 @@ class PDF(FPDF):
 
 def export_analysis_to_pdf(ifc_metadata, component_count, figs):
     pdf = PDF()
-    pdf.add_page()
 
-    # Title
-    pdf.set_font('Arial', 'B', 16)
+    # Cover Page
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 20)
     pdf.cell(0, 10, 'IFC and Excel File Analysis Report', 0, 1, 'C')
-    pdf.ln(10)
+    pdf.ln(20)
+    pdf.set_font('Arial', 'I', 12)
+    pdf.cell(0, 10, f'Date: {datetime.now().strftime("%Y-%m-%d")}', 0, 1, 'C')
+    pdf.cell(0, 10, 'Author: Mostafa Gabr', 0, 1, 'C')
+    pdf.ln(30)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, "This report contains the analysis of IFC and Excel files. The following sections include metadata, component counts, and visualizations of the data.")
+    pdf.ln(20)
 
     # IFC Metadata
+    pdf.add_page()
     pdf.chapter_title("IFC File Metadata")
     metadata_body = f"""
     Name: {ifc_metadata.get('Name', 'Not available')}
@@ -179,10 +187,17 @@ def export_analysis_to_pdf(ifc_metadata, component_count, figs):
     """
     pdf.chapter_body(metadata_body)
 
-    # Component Count
+    # Component Count Table
     pdf.chapter_title("Component Count")
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(40, 10, 'Component', 1)
+    pdf.cell(40, 10, 'Count', 1)
+    pdf.ln()
+    pdf.set_font('Arial', '', 12)
     for component, count in component_count.items():
-        pdf.chapter_body(f"{component}: {count}")
+        pdf.cell(40, 10, component, 1)
+        pdf.cell(40, 10, str(count), 1)
+        pdf.ln()
 
     # Adding Images
     for idx, fig in enumerate(figs):
