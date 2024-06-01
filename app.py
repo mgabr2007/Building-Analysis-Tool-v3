@@ -16,6 +16,10 @@ from fpdf import FPDF
 import plotly.io as pio
 import psutil
 
+# Import fpdf2
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
+
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
