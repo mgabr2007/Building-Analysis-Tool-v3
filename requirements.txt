@@ -4,6 +4,6 @@ numpy
 ifcopenshell
 matplotlib
 plotly
-fpdf2
+openpyxl
+reportlab
 psutil
-kaleido
