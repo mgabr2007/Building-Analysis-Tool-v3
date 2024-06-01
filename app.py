@@ -12,13 +12,12 @@ import plotly.graph_objects as go
 from datetime import datetime
 import hashlib
 import logging
-from fpdf import FPDF
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 import plotly.io as pio
 import psutil
-
-# Import fpdf2
-from fpdf import FPDF
-from fpdf.enums import XPos, YPos
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -133,75 +132,56 @@ def generate_insights(df):
         # Placeholder for more sophisticated analysis or predictive modeling
 
 # PDF Export Function
-class PDF(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 16)
-        self.cell(0, 10, 'IFC and Excel File Analysis Report', 0, 1, 'C')
-        self.ln(10)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
-
-    def chapter_title(self, title):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, title, 0, 1, 'L')
-        self.ln(5)
-
-    def chapter_body(self, body):
-        self.set_font('Arial', '', 12)
-        self.multi_cell(0, 10, body)
-        self.ln()
-
-    def add_chapter(self, title, body):
-        self.add_page()
-        self.chapter_title(title)
-        self.chapter_body(body)
-
-    def add_image(self, image_path, title):
-        self.add_page()
-        self.chapter_title(title)
-        self.image(image_path, x=10, y=30, w=190)
-
 def export_analysis_to_pdf(ifc_metadata, component_count, figs, author, subject, cover_text):
-    pdf = PDF()
+    buffer = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    doc = SimpleDocTemplate(buffer.name, pagesize=letter)
+    styles = getSampleStyleSheet()
+    flowables = []
 
     # Cover Page
-    pdf.add_page()
-    pdf.set_font('Arial', 'B', 20)
-    pdf.cell(0, 10, subject, 0, 1, 'C')
-    pdf.ln(20)
-    pdf.set_font('Arial', 'I', 12)
-    pdf.cell(0, 10, f'Date: {datetime.now().strftime("%Y-%m-%d")}', 0, 1, 'C')
-    pdf.cell(0, 10, f'Author: {author}', 0, 1, 'C')
-    pdf.ln(30)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 10, cover_text)
-    pdf.ln(20)
+    flowables.append(Spacer(1, 1 * inch))
+    flowables.append(Paragraph(subject, styles['Title']))
+    flowables.append(Spacer(1, 0.5 * inch))
+    flowables.append(Paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d')}", styles['Normal']))
+    flowables.append(Paragraph(f"Author: {author}", styles['Normal']))
+    flowables.append(Spacer(1, 1 * inch))
+    flowables.append(Paragraph(cover_text, styles['Normal']))
+    flowables.append(Spacer(1, 2 * inch))
 
     # IFC Metadata
-    pdf.add_page()
-    pdf.chapter_title("IFC File Metadata")
-    metadata_body = f"""
-    Name: {ifc_metadata.get('Name', 'Not available')}
-    Description: {ifc_metadata.get('Description', 'Not available')}
-    Phase: {ifc_metadata.get('Phase', 'Not available')}
-    Creation Date: {ifc_metadata.get('CreationDate', 'Not available')}
-    """
-    pdf.chapter_body(metadata_body)
+    flowables.append(Paragraph("IFC File Metadata", styles['Heading2']))
+    metadata_table_data = [
+        ["Name", ifc_metadata.get('Name', 'Not available')],
+        ["Description", ifc_metadata.get('Description', 'Not available')],
+        ["Phase", ifc_metadata.get('Phase', 'Not available')],
+        ["Creation Date", ifc_metadata.get('CreationDate', 'Not available')]
+    ]
+    metadata_table = Table(metadata_table_data)
+    metadata_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+    ]))
+    flowables.append(metadata_table)
+    flowables.append(Spacer(1, 0.5 * inch))
 
-    # Component Count Table
-    pdf.chapter_title("Component Count")
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(40, 10, 'Component', 1)
-    pdf.cell(40, 10, 'Count', 1)
-    pdf.ln()
-    pdf.set_font('Arial', '', 12)
-    for component, count in component_count.items():
-        pdf.cell(40, 10, component, 1)
-        pdf.cell(40, 10, str(count), 1)
-        pdf.ln()
+    # Component Count
+    flowables.append(Paragraph("Component Count", styles['Heading2']))
+    component_table_data = [["Component", "Count"]] + [[component, str(count)] for component, count in component_count.items()]
+    component_table = Table(component_table_data)
+    component_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+    ]))
+    flowables.append(component_table)
+    flowables.append(Spacer(1, 0.5 * inch))
 
     # Adding Images
     for idx, fig in enumerate(figs):
@@ -209,15 +189,15 @@ def export_analysis_to_pdf(ifc_metadata, component_count, figs, author, subject,
             try:
                 fig.update_layout(paper_bgcolor='white', plot_bgcolor='white', font_color='black')
                 fig.write_image(tmp_file.name, format='png', engine='kaleido')
-                pdf.add_image(tmp_file.name, f"Chart {idx + 1}")
+                flowables.append(Spacer(1, 0.5 * inch))
+                flowables.append(Paragraph(f"Chart {idx + 1}", styles['Heading2']))
+                flowables.append(Image(tmp_file.name))
             except Exception as e:
                 logging.error(f"Error exporting chart to image: {e}")
                 st.error(f"Error exporting chart to image: {e}")
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        pdf_file_path = tmp_file.name
-        pdf.output(pdf_file_path)
-    return pdf_file_path
+    doc.build(flowables)
+    return buffer.name
 
 # Main Analysis Functions
 def ifc_file_analysis():
