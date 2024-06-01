@@ -135,6 +135,11 @@ class PDF(FPDF):
         self.cell(0, 10, 'IFC and Excel File Analysis Report', 0, 1, 'C')
         self.ln(10)
 
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
     def chapter_title(self, title):
         self.set_font('Arial', 'B', 12)
         self.cell(0, 10, title, 0, 1, 'L')
@@ -159,6 +164,12 @@ def export_analysis_to_pdf(ifc_metadata, component_count, figs):
     pdf = PDF()
     pdf.add_page()
 
+    # Title
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, 'IFC and Excel File Analysis Report', 0, 1, 'C')
+    pdf.ln(10)
+
+    # IFC Metadata
     pdf.chapter_title("IFC File Metadata")
     metadata_body = f"""
     Name: {ifc_metadata.get('Name', 'Not available')}
@@ -168,10 +179,12 @@ def export_analysis_to_pdf(ifc_metadata, component_count, figs):
     """
     pdf.chapter_body(metadata_body)
 
+    # Component Count
     pdf.chapter_title("Component Count")
     for component, count in component_count.items():
         pdf.chapter_body(f"{component}: {count}")
 
+    # Adding Images
     for idx, fig in enumerate(figs):
         with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
             try:
