@@ -4,6 +4,6 @@ numpy
 ifcopenshell
 matplotlib
 plotly
-fpdf
+fpdf2
 psutil
 kaleido
