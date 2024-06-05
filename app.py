@@ -11,7 +11,6 @@ import os
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-import hashlib
 import logging
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -20,7 +19,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.units import inch
 import plotly.io as pio
 import psutil
-import pprint  # Add this import
+import pprint
 
 pp = pprint.PrettyPrinter()
 
@@ -417,75 +416,79 @@ def get_attribute_value(object_data, attribute):
             return object_data["QuantitySets"][pset_name].get(prop_name, None)
     return None
 
-def display_detailed_object_data(ifc_file):
-    st.markdown("""
-    ## Instructions for Using the IFC File Processor
+def display_detailed_object_data():
+    try:
+        st.markdown("""
+        ## Instructions for Using the IFC File Processor
 
-    1. **Upload an IFC File**:
-       - Use the "Choose an IFC file" button to upload your IFC file. This file should be in the `.ifc` format.
+        1. **Upload an IFC File**:
+        - Use the "Choose an IFC file" button to upload your IFC file. This file should be in the `.ifc` format.
 
-    2. **Select Class Type**:
-       - After uploading the IFC file, select the class type of objects you want to analyze from the dropdown menu. The dropdown will be populated with all unique class types present in the uploaded IFC file.
+        2. **Select Class Type**:
+        - After uploading the IFC file, select the class type of objects you want to analyze from the dropdown menu. The dropdown will be populated with all unique class types present in the uploaded IFC file.
 
-    3. **View Object Data**:
-       - The app will display a table containing detailed information about the objects of the selected class type. This table includes attributes like `ExpressId`, `GlobalId`, `Class`, `PredefinedType`, `Name`, `Level`, and `Type`, along with any property sets and quantity sets associated with the objects.
+        3. **View Object Data**:
+        - The app will display a table containing detailed information about the objects of the selected class type. This table includes attributes like `ExpressId`, `GlobalId`, `Class`, `PredefinedType`, `Name`, `Level`, and `Type`, along with any property sets and quantity sets associated with the objects.
 
-       **Explanation**:
-       - **ExpressId**: The internal identifier of the object in the IFC file.
-       - **GlobalId**: The globally unique identifier of the object.
-       - **Class**: The type of the object (e.g., IfcBeam, IfcWall).
-       - **PredefinedType**: A subtype or specific classification of the object.
-       - **Name**: The name of the object.
-       - **Level**: The floor or level where the object is located.
-       - **Type**: The specific type of the object.
-       - **PropertySets** and **QuantitySets**: These columns contain various properties and quantities associated with the objects, respectively.
+        **Explanation**:
+        - **ExpressId**: The internal identifier of the object in the IFC file.
+        - **GlobalId**: The globally unique identifier of the object.
+        - **Class**: The type of the object (e.g., IfcBeam, IfcWall).
+        - **PredefinedType**: A subtype or specific classification of the object.
+        - **Name**: The name of the object.
+        - **Level**: The floor or level where the object is located.
+        - **Type**: The specific type of the object.
+        - **PropertySets** and **QuantitySets**: These columns contain various properties and quantities associated with the objects, respectively.
 
-    4. **View Floor and Type Summary**:
-       - Below the detailed table, you will see another table that shows the total count of each type of object per floor. This table is grouped by `Level` and `Type`.
+        4. **View Floor and Type Summary**:
+        - Below the detailed table, you will see another table that shows the total count of each type of object per floor. This table is grouped by `Level` and `Type`.
 
-       **Explanation**:
-       - This summary helps you understand how many objects of each type are present on each floor. For example, it will show you how many beams, walls, or windows are on each level of the building.
+        **Explanation**:
+        - This summary helps you understand how many objects of each type are present on each floor. For example, it will show you how many beams, walls, or windows are on each level of the building.
 
-    5. **Download Data**:
-       - You can download the detailed object data as a CSV file by clicking the "Download data as CSV" button. This allows you to further analyze the data offline or integrate it with other tools.
-    """)
+        5. **Download Data**:
+        - You can download the detailed object data as a CSV file by clicking the "Download data as CSV" button. This allows you to further analyze the data offline or integrate it with other tools.
+        """)
 
-    file_path, file_name = handle_file_upload("IFC", ['ifc'])
-    if file_path:
-        with st.spinner('Processing IFC file...'):
-            ifc_file = process_ifc_file(file_path)
-            if ifc_file:
-                all_classes = set(entity.is_a() for entity in ifc_file)
-                class_type = st.selectbox('Select Class Type', sorted(all_classes))
+        file_path, file_name = handle_file_upload("IFC", ['ifc'])
+        if file_path:
+            with st.spinner('Processing IFC file...'):
+                ifc_file = process_ifc_file(file_path)
+                if ifc_file:
+                    all_classes = set(entity.is_a() for entity in ifc_file)
+                    class_type = st.selectbox('Select Class Type', sorted(all_classes))
 
-                data, pset_attributes = get_objects_data_by_class(ifc_file, class_type)
-                attributes = ["ExpressId", "GlobalId", "Class", "PredefinedType", "Name", "Level", "Type"] + pset_attributes
+                    data, pset_attributes = get_objects_data_by_class(ifc_file, class_type)
+                    attributes = ["ExpressId", "GlobalId", "Class", "PredefinedType", "Name", "Level", "Type"] + pset_attributes
 
-                pandas_data = []
-                for object_data in data:
-                    row = [get_attribute_value(object_data, attribute) for attribute in attributes]
-                    pandas_data.append(tuple(row))
+                    pandas_data = []
+                    for object_data in data:
+                        row = [get_attribute_value(object_data, attribute) for attribute in attributes]
+                        pandas_data.append(tuple(row))
 
-                dataframe = pd.DataFrame.from_records(pandas_data, columns=attributes)
+                    dataframe = pd.DataFrame.from_records(pandas_data, columns=attributes)
 
-                st.subheader("Detailed Object Data")
-                st.write(dataframe)
+                    st.subheader("Detailed Object Data")
+                    st.write(dataframe)
 
-                st.subheader("Summary by Floor and Type")
-                if 'Level' in dataframe.columns and 'Type' in dataframe.columns:
-                    floor_type_counts = dataframe.groupby(['Level', 'Type']).size().reset_index(name='Count')
-                    st.write(floor_type_counts)
-                else:
-                    st.write("Columns 'Level' and 'Type' not found in the data.")
+                    st.subheader("Summary by Floor and Type")
+                    if 'Level' in dataframe.columns and 'Type' in dataframe.columns:
+                        floor_type_counts = dataframe.groupby(['Level', 'Type']).size().reset_index(name='Count')
+                        st.write(floor_type_counts)
+                    else:
+                        st.write("Columns 'Level' and 'Type' not found in the data.")
 
-                st.download_button(
-                    label="Download data as CSV",
-                    data=dataframe.to_csv(index=False).encode('utf-8'),
-                    file_name='ifc_data.csv',
-                    mime='text/csv',
-                )
+                    st.download_button(
+                        label="Download data as CSV",
+                        data=dataframe.to_csv(index=False).encode('utf-8'),
+                        file_name='ifc_data.csv',
+                        mime='text/csv',
+                    )
 
-                os.remove(file_path)
+                    os.remove(file_path)
+    except Exception as e:
+        logging.error(f"Error in display_detailed_object_data: {e}")
+        st.error(f"Error in display_detailed_object_data: {e}")
 
 # Main Application Structure
 def welcome_page():
