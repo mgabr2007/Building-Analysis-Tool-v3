@@ -20,6 +20,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.units import inch
 import plotly.io as pio
 import psutil
+import pprint  # Add this import
 
 pp = pprint.PrettyPrinter()
 
