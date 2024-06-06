@@ -68,6 +68,22 @@ def display_metadata(ifc_file):
             st.write(f"Time Stamp: {datetime.fromtimestamp(project.CreationDate)}")
         else:
             st.write("Time Stamp: Not available")
+        # Display project location if available
+        site = ifc_file.by_type('IfcSite')
+        if site:
+            site = site[0]
+            if hasattr(site, 'RefLatitude') and hasattr(site, 'RefLongitude'):
+                latitude = site.RefLatitude
+                longitude = site.RefLongitude
+                lat_deg = latitude[0] + latitude[1]/60 + latitude[2]/3600
+                lon_deg = longitude[0] + longitude[1]/60 + longitude[2]/3600
+                if latitude[3] == -1:
+                    lat_deg = -lat_deg
+                if longitude[3] == -1:
+                    lon_deg = -lon_deg
+                st.write(f"Location: {lat_deg}° Latitude, {lon_deg}° Longitude")
+            else:
+                st.write("Location: Not available")
 
 # IFC Analysis Functions
 def count_building_components(ifc_file):
@@ -166,7 +182,8 @@ def export_analysis_to_pdf(ifc_metadata, component_count, figs, author, subject,
         ["Name", ifc_metadata.get('Name', 'Not available')],
         ["Description", ifc_metadata.get('Description', 'Not available')],
         ["Phase", ifc_metadata.get('Phase', 'Not available')],
-        ["Creation Date", ifc_metadata.get('CreationDate', 'Not available')]
+        ["Creation Date", ifc_metadata.get('CreationDate', 'Not available')],
+        ["Location", ifc_metadata.get('Location', 'Not available')]
     ]
     metadata_table = Table(metadata_table_data)
     metadata_table.setStyle(TableStyle([
@@ -243,7 +260,8 @@ def ifc_file_analysis():
                     "Name": ifc_file.by_type('IfcProject')[0].Name,
                     "Description": ifc_file.by_type('IfcProject')[0].Description,
                     "Phase": ifc_file.by_type('IfcProject')[0].Phase,
-                    "CreationDate": datetime.fromtimestamp(ifc_file.by_type('IfcProject')[0].CreationDate) if hasattr(ifc_file.by_type('IfcProject')[0], 'CreationDate') else 'Not available'
+                    "CreationDate": datetime.fromtimestamp(ifc_file.by_type('IfcProject')[0].CreationDate) if hasattr(ifc_file.by_type('IfcProject')[0], 'CreationDate') else 'Not available',
+                    "Location": get_project_location(ifc_file)
                 }
 
                 figs = [fig]
@@ -463,11 +481,10 @@ def display_detailed_object_data():
 
                     - **GlobalId**: The globally unique identifier of the window object.
                     - **Name**: The name of the window object.
-                    - **Area**: The area of the window's glass, measured in square units.
                     - **Orientation**: The primary orientation of the window, indicating the direction the window faces (e.g., East, West, North, South).
                     - **Azimuth**: The azimuth angle of the window, which represents the angle between the projection of the window's direction vector on the XY plane and the positive X-axis. This angle is measured in degrees and ranges from 0 to 360 degrees.
 
-                    The total area of all windows is also displayed above the table for a quick summary. This information helps in understanding the placement and orientation of windows within the building, which is useful for assessing factors such as natural light, heat gain, and ventilation.
+                    This information helps in understanding the placement and orientation of windows within the building, which is useful for assessing factors such as natural light, heat gain, and ventilation.
                     """)
 
                     # Display windows data
@@ -478,46 +495,23 @@ def display_detailed_object_data():
         logging.error(f"Error in display_detailed_object_data: {e}")
         st.error(f"Error in display_detailed_object_data: {e}")
 
-# Add new functionalities for window data extraction and display
-def calculate_glass_area(window):
-    try:
-        if hasattr(window, 'Representation') and window.Representation is not None:
-            for rep in window.Representation.Representations:
-                logging.info(f"Representation type: {rep.RepresentationType}")
-                if rep.RepresentationType in ['SweptSolid', 'SurfaceModel', 'Brep', 'BoundingBox'] and hasattr(rep, 'Items'):
-                    for item in rep.Items:
-                        logging.info(f"Processing item: {item.is_a()}")
-                        if hasattr(item, 'LayerAssignments'):
-                            for layer in item.LayerAssignments:
-                                logging.info(f"Layer name: {layer.Name}")
-                                if 'Glass' in layer.Name or 'glass' in layer.Name:  # Check for different case possibilities
-                                    if hasattr(item, 'SweptArea') and hasattr(item.SweptArea, 'Area'):
-                                        logging.info(f"Glass area found: {item.SweptArea.Area}")
-                                        return item.SweptArea.Area
-                                    elif hasattr(item, 'OuterBoundary'):
-                                        logging.info(f"Glass outer boundary area found: {item.OuterBoundary.area}")
-                                        return item.OuterBoundary.area
-                                    elif hasattr(item, 'BBox'):
-                                        logging.info(f"Glass bounding box volume found: {item.BBox.Volume}")
-                                        return item.BBox.Volume
-                                    elif hasattr(item, 'StyledByItem'):
-                                        for styled_item in item.StyledByItem:
-                                            if styled_item.Styles:
-                                                for style in styled_item.Styles:
-                                                    if 'glass' in style.Name.lower():
-                                                        if hasattr(item, 'SweptArea') and hasattr(item.SweptArea, 'Area'):
-                                                            logging.info(f"Glass area found in styled item: {item.SweptArea.Area}")
-                                                            return item.SweptArea.Area
-                                                        elif hasattr(item, 'OuterBoundary'):
-                                                            logging.info(f"Glass outer boundary area found in styled item: {item.OuterBoundary.area}")
-                                                            return item.OuterBoundary.area
-                                                        elif hasattr(item, 'BBox'):
-                                                            logging.info(f"Glass bounding box volume found in styled item: {item.BBox.Volume}")
-                                                            return item.BBox.Volume
-    except Exception as e:
-        logging.error(f"Error calculating window glass area: {e}")
-    return 0
+def get_project_location(ifc_file):
+    site = ifc_file.by_type('IfcSite')
+    if site:
+        site = site[0]
+        if hasattr(site, 'RefLatitude') and hasattr(site, 'RefLongitude'):
+            latitude = site.RefLatitude
+            longitude = site.RefLongitude
+            lat_deg = latitude[0] + latitude[1]/60 + latitude[2]/3600
+            lon_deg = longitude[0] + longitude[1]/60 + longitude[2]/3600
+            if latitude[3] == -1:
+                lat_deg = -lat_deg
+            if longitude[3] == -1:
+                lon_deg = -lon_deg
+            return f"{lat_deg}° Latitude, {lon_deg}° Longitude"
+    return "Not available"
 
+# Add new functionalities for window data extraction and display
 def get_window_orientation(window):
     try:
         if hasattr(window, 'ObjectPlacement') and window.ObjectPlacement is not None:
@@ -546,7 +540,6 @@ def extract_window_data(ifc_file):
         window_data = {
             "GlobalId": window.GlobalId,
             "Name": window.Name,
-            "Area": calculate_glass_area(window),
             "Orientation": orientation_data['Orientation'],
             "Azimuth": orientation_data['Azimuth']
         }
@@ -558,8 +551,6 @@ def display_window_data(ifc_file):
     st.subheader("Windows Information")
     windows_df = extract_window_data(ifc_file)
     if not windows_df.empty:
-        total_area = windows_df['Area'].sum()
-        st.write(f"Total Window Area: {total_area:.2f} square units")
         st.dataframe(windows_df)
     else:
         st.write("No windows found in the IFC file.")
