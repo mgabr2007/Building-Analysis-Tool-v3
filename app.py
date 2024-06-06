@@ -1,3 +1,4 @@
+import math
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -397,9 +398,9 @@ def display_detailed_object_data():
         - After uploading the IFC file, select the class type of objects you want to analyze from the dropdown menu. The dropdown will be populated with all unique class types present in the uploaded IFC file.
 
         3. **View Object Data**:
-        - The app will display a table containing detailed information about the objects of the selected class type. This table includes attributes like `ExpressId`, `GlobalId`, `Class`, `PredefinedType`, `Name`, `Level`, and `Type`, along with any property sets and quantity sets associated with the objects.
+        - The app will display a table containing detailed information about the objects of the selected class type. This table includes attributes like `ExpressId`, `GlobalId`, `Class`, `PredefinedType`, `Name`, `Level`, and `Type`, along with any property sets and quantity sets associated with the objects
 
-        **Explanation**:
+                **Explanation**:
         - **ExpressId**: The internal identifier of the object in the IFC file.
         - **GlobalId**: The globally unique identifier of the object.
         - **Class**: The type of the object (e.g., IfcBeam, IfcWall).
@@ -489,16 +490,14 @@ def get_window_orientation(window):
                     direction = placement.RefDirection.DirectionRatios
                     logging.info(f"Window {window.GlobalId} direction: {direction}")
                     if direction:
-                        max_index = direction.index(max(direction, key=abs))  # Get the index of the maximum absolute value
-                        if max_index == 0:
-                            return 'East' if direction[max_index] > 0 else 'West'
-                        elif max_index == 1:
-                            return 'North' if direction[max_index] > 0 else 'South'
-                        elif max_index == 2:
-                            return 'Up' if direction[max_index] > 0 else 'Down'
+                        azimuth = math.degrees(math.atan2(direction[1], direction[0])) % 360
+                        return {
+                            'Orientation': 'East' if direction[0] > 0 else 'West' if direction[0] < 0 else 'North' if direction[1] > 0 else 'South',
+                            'Azimuth': azimuth
+                        }
     except Exception as e:
         logging.error(f"Error determining window orientation: {e}")
-    return 'Unknown'
+    return {'Orientation': 'Unknown', 'Azimuth': None}
 
 def extract_window_data(ifc_file):
     windows_data = []
@@ -506,11 +505,13 @@ def extract_window_data(ifc_file):
     
     for window in windows:
         logging.info(f"Processing window {window.GlobalId} with name {window.Name}")
+        orientation_data = get_window_orientation(window)
         window_data = {
             "GlobalId": window.GlobalId,
             "Name": window.Name,
             "Area": calculate_glass_area(window),
-            "Orientation": get_window_orientation(window)
+            "Orientation": orientation_data['Orientation'],
+            "Azimuth": orientation_data['Azimuth']
         }
         windows_data.append(window_data)
     
