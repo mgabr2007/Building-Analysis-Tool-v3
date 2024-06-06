@@ -463,18 +463,21 @@ def display_detailed_object_data():
         st.error(f"Error in display_detailed_object_data: {e}")
 
 # Add new functionalities for window data extraction and display
-def calculate_window_area(window):
+def calculate_glass_area(window):
     try:
         if hasattr(window, 'Representation') and window.Representation is not None:
             for rep in window.Representation.Representations:
-                if rep.RepresentationType in ['SweptSolid', 'SurfaceModel'] and hasattr(rep, 'Items'):
+                if rep.RepresentationType in ['SweptSolid', 'SurfaceModel', 'Brep'] and hasattr(rep, 'Items'):
                     for item in rep.Items:
-                        if hasattr(item, 'SweptArea') and hasattr(item.SweptArea, 'Area'):
-                            return item.SweptArea.Area
-                        elif hasattr(item, 'OuterBoundary'):
-                            return item.OuterBoundary.area
+                        if hasattr(item, 'LayerAssignments'):
+                            for layer in item.LayerAssignments:
+                                if 'Glass' in layer.Name:  # Assuming the layer name includes 'Glass'
+                                    if hasattr(item, 'SweptArea') and hasattr(item.SweptArea, 'Area'):
+                                        return item.SweptArea.Area
+                                    elif hasattr(item, 'OuterBoundary'):
+                                        return item.OuterBoundary.area
     except Exception as e:
-        logging.error(f"Error calculating window area: {e}")
+        logging.error(f"Error calculating window glass area: {e}")
     return 0
 
 def get_window_orientation(window):
@@ -507,7 +510,7 @@ def extract_window_data(ifc_file):
         window_data = {
             "GlobalId": window.GlobalId,
             "Name": window.Name,
-            "Area": calculate_window_area(window),
+            "Area": calculate_glass_area(window),
             "Orientation": get_window_orientation(window)
         }
         windows_data.append(window_data)
