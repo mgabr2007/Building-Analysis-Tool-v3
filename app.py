@@ -337,11 +337,28 @@ def compare_ifc_files_ui():
     file_path1, file_name1 = handle_file_upload("first IFC", ['ifc'])
     file_path2, file_name2 = handle_file_upload("second IFC", ['ifc'])
 
-   
-                        st.download_button('Download PDF Report', f, 'ifc_comparison.pdf')
+    if file_path1 and file_path2:
+        with st.spinner('Processing IFC files...'):
+            ifc_file1 = process_ifc_file(file_path1)
+            ifc_file2 = process_ifc_file(file_path2)
+            if ifc_file1 and ifc_file2:
+                comparison_result = compare_ifc_files(ifc_file1, ifc_file2)
+                
+                st.write("### Comparison Results")
+                for component_type, counts in comparison_result.items():
+                    st.write(f"**{component_type}**: File 1 Count: {counts['File 1 Count']}, File 2 Count: {counts['File 2 Count']}, Difference: {counts['Difference']}")
 
-            os.remove(file_path1)
-            os.remove(file_path2)
+                # Visualization of overall comparison
+                if st.button("Show Overall Comparison"):
+                    overall_comparison_df = pd.DataFrame(comparison_result).T.reset_index()
+                    overall_comparison_df.columns = ['Component', 'File 1 Count', 'File 2 Count', 'Difference']
+                    fig = px.bar(overall_comparison_df, x='Component', y=['File 1 Count', 'File 2 Count'], barmode='group')
+                    st.plotly_chart(fig)
+
+                os.remove(file_path1)
+                os.remove(file_path2)
+
+            
 
 # Add new functionalities for detailed object data extraction and display
 def get_objects_data_by_class(file, class_type):
