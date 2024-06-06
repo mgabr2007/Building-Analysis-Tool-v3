@@ -258,9 +258,6 @@ def ifc_file_analysis():
                         st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
             os.remove(file_path)
 
-            # Display windows data
-            display_window_data(ifc_file)
-
 def save_ifc_file(ifc_file):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.ifc') as tmp_file:
@@ -348,7 +345,7 @@ def compare_ifc_files_ui():
             os.remove(file_path1)
             os.remove(file_path2)
 
-# Add new functionalities for detailed object data extraction
+# Add new functionalities for detailed object data extraction and display
 def get_objects_data_by_class(file, class_type):
     def add_pset_attributes(psets):
         for pset_name, pset_data in psets.items():
@@ -456,6 +453,9 @@ def display_detailed_object_data():
                         file_name='ifc_data.csv',
                         mime='text/csv',
                     )
+
+                    # Display windows data
+                    display_window_data(ifc_file)
 
                     os.remove(file_path)
     except Exception as e:
