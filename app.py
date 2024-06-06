@@ -488,16 +488,13 @@ def get_window_orientation(window):
                 if hasattr(placement, 'RefDirection') and placement.RefDirection is not None:
                     direction = placement.RefDirection.DirectionRatios
                     if direction:
-                        if direction[0] > 0:
-                            return 'East'
-                        elif direction[0] < 0:
-                            return 'West'
-                        elif direction[1] > 0:
-                            return 'North'
-                        elif direction[1] < 0:
-                            return 'South'
-                        elif direction[2] != 0:
-                            return 'Vertical'
+                        max_index = direction.index(max(direction, key=abs))  # Get the index of the maximum absolute value
+                        if max_index == 0:
+                            return 'East' if direction[max_index] > 0 else 'West'
+                        elif max_index == 1:
+                            return 'North' if direction[max_index] > 0 else 'South'
+                        elif max_index == 2:
+                            return 'Up' if direction[max_index] > 0 else 'Down'
     except Exception as e:
         logging.error(f"Error determining window orientation: {e}")
     return 'Unknown'
