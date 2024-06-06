@@ -49,7 +49,7 @@ def read_excel(file):
     try:
         return pd.read_excel(file, engine='openpyxl')
     except Exception as e:
-        error_message = f"Failed to read Excel file: {e}")
+        error_message = f"Failed to read Excel file: {e}"
         logging.error(error_message)
         st.error(error_message)
         return pd.DataFrame()
