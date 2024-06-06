@@ -337,37 +337,7 @@ def compare_ifc_files_ui():
     file_path1, file_name1 = handle_file_upload("first IFC", ['ifc'])
     file_path2, file_name2 = handle_file_upload("second IFC", ['ifc'])
 
-    if file_path1 and file_path2:
-        with st.spinner('Processing IFC files...'):
-            ifc_file1 = process_ifc_file(file_path1)
-            ifc_file2 = process_ifc_file(file_path2)
-            if ifc_file1 and ifc_file2:
-                comparison_result = compare_ifc_files(ifc_file1, ifc_file2)
-                all_component_types = list(comparison_result.keys())
-                selected_component = st.selectbox("Select a component type for detailed comparison:", all_component_types, key="component_type")
-
-                figs = []
-                if selected_component:
-                    component_data = comparison_result[selected_component]
-                    fig = go.Figure(data=[
-                        go.Bar(name=f"{file_name1} - File 1", x=[selected_component], y=[component_data['File 1 Count']], marker_color='indianred'),
-                        go.Bar(name=f"{file_name2} - File 2", x=[selected_component], y=[component_data['File 2 Count']], marker_color='lightseagreen'),
-                        go.Bar(name='Difference', x=[selected_component], y=[component_data['Difference']], marker_color='lightslategray')
-                    ])
-                    fig.update_layout(barmode='group', title_text=f'Comparison of {selected_component} in {file_name1} and {file_name2}', xaxis_title="Component Type", yaxis_title="Count", paper_bgcolor='white', plot_bgcolor='white', font_color='black')
-                    st.plotly_chart(fig)
-                    figs.append(fig)
-
-                    if st.button("Show Overall Comparison"):
-                        differences = [comparison_result[comp]['Difference'] for comp in all_component_types]
-                        fig_pie = go.Figure(data=[go.Pie(labels=all_component_types, values=differences, title=f'Overall Differences in Components between {file_name1} and {file_name2}')])
-                        fig_pie.update_layout(paper_bgcolor='white', plot_bgcolor='white', font_color='black')
-                        st.plotly_chart(fig_pie)
-                        figs.append(fig_pie)
-
-                if figs and st.button("Export Analysis as PDF"):
-                    pdf_file_path = export_analysis_to_pdf({"Name": "IFC Files Comparison"}, {}, figs, "Author Name", "IFC Files Comparison Report", "This report contains the comparison analysis of two IFC files.")
-                    with open(pdf_file_path, 'rb') as f:
+   
                         st.download_button('Download PDF Report', f, 'ifc_comparison.pdf')
 
             os.remove(file_path1)
