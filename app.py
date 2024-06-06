@@ -398,9 +398,9 @@ def display_detailed_object_data():
         - After uploading the IFC file, select the class type of objects you want to analyze from the dropdown menu. The dropdown will be populated with all unique class types present in the uploaded IFC file.
 
         3. **View Object Data**:
-        - The app will display a table containing detailed information about the objects of the selected class type. This table includes attributes like `ExpressId`, `GlobalId`, `Class`, `PredefinedType`, `Name`, `Level`, and `Type`, along with any property sets and quantity sets associated with the objects
+        - The app will display a table containing detailed information about the objects of the selected class type. This table includes attributes like `ExpressId`, `GlobalId`, `Class`, `PredefinedType`, `Name`, `Level`, and `Type`, along with any property sets and quantity sets associated with the objects.
 
-                **Explanation**:
+        **Explanation**:
         - **ExpressId**: The internal identifier of the object in the IFC file.
         - **GlobalId**: The globally unique identifier of the object.
         - **Class**: The type of the object (e.g., IfcBeam, IfcWall).
@@ -455,6 +455,21 @@ def display_detailed_object_data():
                         mime='text/csv',
                     )
 
+                    # Explanation for Windows Information Table
+                    st.markdown("""
+                    ### Windows Information Table
+
+                    The **Windows Information** table provides detailed data about each window in the IFC file. Here is an explanation of each column:
+
+                    - **GlobalId**: The globally unique identifier of the window object.
+                    - **Name**: The name of the window object.
+                    - **Area**: The area of the window's glass, measured in square units.
+                    - **Orientation**: The primary orientation of the window, indicating the direction the window faces (e.g., East, West, North, South).
+                    - **Azimuth**: The azimuth angle of the window, which represents the angle between the projection of the window's direction vector on the XY plane and the positive X-axis. This angle is measured in degrees and ranges from 0 to 360 degrees.
+
+                    The total area of all windows is also displayed above the table for a quick summary. This information helps in understanding the placement and orientation of windows within the building, which is useful for assessing factors such as natural light, heat gain, and ventilation.
+                    """)
+
                     # Display windows data
                     display_window_data(ifc_file)
 
@@ -462,6 +477,7 @@ def display_detailed_object_data():
     except Exception as e:
         logging.error(f"Error in display_detailed_object_data: {e}")
         st.error(f"Error in display_detailed_object_data: {e}")
+
 
 # Add new functionalities for window data extraction and display
 def calculate_glass_area(window):
