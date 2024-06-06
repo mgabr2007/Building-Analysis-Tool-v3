@@ -53,6 +53,54 @@ def read_excel(file):
         logging.error(error_message)
         st.error(error_message)
         return pd.DataFrame()
+# Add these functions below the existing utility functions
+
+def calculate_window_area(window):
+    try:
+        if hasattr(window, 'Representation') and window.Representation is not None:
+            for rep in window.Representation.Representations:
+                if rep.RepresentationType == 'SweptSolid' and hasattr(rep, 'Items'):
+                    for item in rep.Items:
+                        if hasattr(item, 'SweptArea'):
+                            return item.SweptArea.Area
+    except Exception as e:
+        logging.error(f"Error calculating window area: {e}")
+    return 0
+
+def get_window_orientation(window):
+    try:
+        if hasattr(window, 'ObjectPlacement') and window.ObjectPlacement is not None:
+            if hasattr(window.ObjectPlacement, 'RelativePlacement') and window.ObjectPlacement.RelativePlacement is not None:
+                placement = window.ObjectPlacement.RelativePlacement
+                if hasattr(placement, 'RefDirection') and placement.RefDirection is not None:
+                    direction = placement.RefDirection.DirectionRatios
+                    if direction:
+                        if direction[0] > 0:
+                            return 'East'
+                        elif direction[0] < 0:
+                            return 'West'
+                        elif direction[1] > 0:
+                            return 'North'
+                        elif direction[1] < 0:
+                            return 'South'
+    except Exception as e:
+        logging.error(f"Error determining window orientation: {e}")
+    return 'Unknown'
+
+def extract_window_data(ifc_file):
+    windows_data = []
+    windows = ifc_file.by_type('IfcWindow')
+    
+    for window in windows:
+        window_data = {
+            "GlobalId": window.GlobalId,
+            "Name": window.Name,
+            "Area": calculate_window_area(window),
+            "Orientation": get_window_orientation(window)
+        }
+        windows_data.append(window_data)
+    
+    return pd.DataFrame(windows_data)
 
 # Metadata Management
 def display_metadata(ifc_file):
@@ -67,6 +115,16 @@ def display_metadata(ifc_file):
             st.write(f"Time Stamp: {datetime.fromtimestamp(project.CreationDate)}")
         else:
             st.write("Time Stamp: Not available")
+
+def display_window_data(ifc_file):
+    st.subheader("Windows Information")
+    windows_df = extract_window_data(ifc_file)
+    if not windows_df.empty:
+        total_area = windows_df['Area'].sum()
+        st.write(f"Total Window Area: {total_area:.2f} square units")
+        st.dataframe(windows_df)
+    else:
+        st.write("No windows found in the IFC file.")
 
 # IFC Analysis Functions
 def count_building_components(ifc_file):
@@ -250,6 +308,9 @@ def ifc_file_analysis():
                     with open(pdf_file_path, 'rb') as f:
                         st.download_button('Download PDF Report', f, file_name.replace('.ifc', '.pdf'))
             os.remove(file_path)
+
+            # Display windows data
+            display_window_data(ifc_file)
 
 def save_ifc_file(ifc_file):
     try:
