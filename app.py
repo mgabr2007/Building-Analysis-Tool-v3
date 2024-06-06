@@ -483,9 +483,10 @@ def calculate_glass_area(window):
     try:
         if hasattr(window, 'Representation') and window.Representation is not None:
             for rep in window.Representation.Representations:
-                if rep.RepresentationType in ['SweptSolid', 'SurfaceModel', 'Brep'] and hasattr(rep, 'Items'):
+                logging.info(f"Representation type: {rep.RepresentationType}")
+                if rep.RepresentationType in ['SweptSolid', 'SurfaceModel', 'Brep', 'BoundingBox'] and hasattr(rep, 'Items'):
                     for item in rep.Items:
-                        logging.info(f"Processing item: {item}")
+                        logging.info(f"Processing item: {item.is_a()}")
                         if hasattr(item, 'LayerAssignments'):
                             for layer in item.LayerAssignments:
                                 logging.info(f"Layer name: {layer.Name}")
@@ -496,6 +497,9 @@ def calculate_glass_area(window):
                                     elif hasattr(item, 'OuterBoundary'):
                                         logging.info(f"Glass outer boundary area found: {item.OuterBoundary.area}")
                                         return item.OuterBoundary.area
+                                    elif hasattr(item, 'BBox'):
+                                        logging.info(f"Glass bounding box volume found: {item.BBox.Volume}")
+                                        return item.BBox.Volume
     except Exception as e:
         logging.error(f"Error calculating window glass area: {e}")
     return 0
