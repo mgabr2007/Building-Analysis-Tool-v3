@@ -487,6 +487,7 @@ def get_window_orientation(window):
                 placement = window.ObjectPlacement.RelativePlacement
                 if hasattr(placement, 'RefDirection') and placement.RefDirection is not None:
                     direction = placement.RefDirection.DirectionRatios
+                    logging.info(f"Window {window.GlobalId} direction: {direction}")
                     if direction:
                         max_index = direction.index(max(direction, key=abs))  # Get the index of the maximum absolute value
                         if max_index == 0:
@@ -504,6 +505,7 @@ def extract_window_data(ifc_file):
     windows = ifc_file.by_type('IfcWindow')
     
     for window in windows:
+        logging.info(f"Processing window {window.GlobalId} with name {window.Name}")
         window_data = {
             "GlobalId": window.GlobalId,
             "Name": window.Name,
