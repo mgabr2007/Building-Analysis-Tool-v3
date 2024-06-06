@@ -478,7 +478,6 @@ def display_detailed_object_data():
         logging.error(f"Error in display_detailed_object_data: {e}")
         st.error(f"Error in display_detailed_object_data: {e}")
 
-
 # Add new functionalities for window data extraction and display
 def calculate_glass_area(window):
     try:
@@ -486,12 +485,16 @@ def calculate_glass_area(window):
             for rep in window.Representation.Representations:
                 if rep.RepresentationType in ['SweptSolid', 'SurfaceModel', 'Brep'] and hasattr(rep, 'Items'):
                     for item in rep.Items:
+                        logging.info(f"Processing item: {item}")
                         if hasattr(item, 'LayerAssignments'):
                             for layer in item.LayerAssignments:
-                                if 'Glass' in layer.Name:  # Assuming the layer name includes 'Glass'
+                                logging.info(f"Layer name: {layer.Name}")
+                                if 'Glass' in layer.Name or 'glass' in layer.Name:  # Check for different case possibilities
                                     if hasattr(item, 'SweptArea') and hasattr(item.SweptArea, 'Area'):
+                                        logging.info(f"Glass area found: {item.SweptArea.Area}")
                                         return item.SweptArea.Area
                                     elif hasattr(item, 'OuterBoundary'):
+                                        logging.info(f"Glass outer boundary area found: {item.OuterBoundary.area}")
                                         return item.OuterBoundary.area
     except Exception as e:
         logging.error(f"Error calculating window glass area: {e}")
