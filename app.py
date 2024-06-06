@@ -297,6 +297,38 @@ def save_ifc_file(ifc_file):
         st.error(error_message)
         return None
 
+# Excel File Analysis Function
+def excel_file_analysis():
+    st.write("""
+    ### Instructions for Analyzing Excel Files:
+
+    1. **Upload an Excel File:** Click on the "Choose an Excel file" button to upload an Excel spreadsheet.
+
+    2. **Select Columns to Display:** Choose the columns you want to display from the uploaded Excel file.
+
+    3. **Visualize Data:** Click on "Visualize Data" to generate charts for the selected columns.
+
+    4. **Generate Insights:** Click on "Generate Insights" to view descriptive statistics and other insights from the data.
+    """)
+
+    file_path, _ = handle_file_upload("Excel", ['xlsx'])
+    if file_path:
+        df = read_excel(file_path)
+        if not df.empty:
+            selected_columns = st.multiselect("Select columns to display", df.columns.tolist(), default=df.columns.tolist(), key="columns")
+            if selected_columns:
+                st.dataframe(df[selected_columns])
+                figs = []
+                if st.button("Visualize Data", key="visualize"):
+                    figs = visualize_data(df, selected_columns)
+                if st.button("Generate Insights", key="insights"):
+                    generate_insights(df)
+                if figs and st.button("Export Analysis as PDF"):
+                    pdf_file_path = export_analysis_to_pdf({"Name": "Excel Data Analysis"}, {}, figs, "Author Name", "Excel Data Analysis Report", "This report contains the analysis of Excel data.")
+                    with open(pdf_file_path, 'rb') as f:
+                        st.download_button('Download PDF Report', f, 'excel_analysis.pdf')
+            os.remove(file_path)
+
 # Comparison Analysis Functions
 def compare_ifc_files(ifc_file1, ifc_file2):
     components1 = count_building_components(ifc_file1)
@@ -343,22 +375,35 @@ def compare_ifc_files_ui():
             ifc_file2 = process_ifc_file(file_path2)
             if ifc_file1 and ifc_file2:
                 comparison_result = compare_ifc_files(ifc_file1, ifc_file2)
-                
-                st.write("### Comparison Results")
-                for component_type, counts in comparison_result.items():
-                    st.write(f"**{component_type}**: File 1 Count: {counts['File 1 Count']}, File 2 Count: {counts['File 2 Count']}, Difference: {counts['Difference']}")
+                all_component_types = list(comparison_result.keys())
+                selected_component = st.selectbox("Select a component type for detailed comparison:", all_component_types, key="component_type")
 
-                # Visualization of overall comparison
-                if st.button("Show Overall Comparison"):
-                    overall_comparison_df = pd.DataFrame(comparison_result).T.reset_index()
-                    overall_comparison_df.columns = ['Component', 'File 1 Count', 'File 2 Count', 'Difference']
-                    fig = px.bar(overall_comparison_df, x='Component', y=['File 1 Count', 'File 2 Count'], barmode='group')
+                figs = []
+                if selected_component:
+                    component_data = comparison_result[selected_component]
+                    fig = go.Figure(data=[
+                        go.Bar(name=f"{file_name1} - File 1", x=[selected_component], y=[component_data['File 1 Count']], marker_color='indianred'),
+                        go.Bar(name=f"{file_name2} - File 2", x=[selected_component], y=[component_data['File 2 Count']], marker_color='lightseagreen'),
+                        go.Bar(name='Difference', x=[selected_component], y=[component_data['Difference']], marker_color='lightslategray')
+                    ])
+                    fig.update_layout(barmode='group', title_text=f'Comparison of {selected_component} in {file_name1} and {file_name2}', xaxis_title="Component Type", yaxis_title="Count", paper_bgcolor='white', plot_bgcolor='white', font_color='black')
                     st.plotly_chart(fig)
+                    figs.append(fig)
 
-                os.remove(file_path1)
-                os.remove(file_path2)
+                    if st.button("Show Overall Comparison"):
+                        differences = [comparison_result[comp]['Difference'] for comp in all_component_types]
+                        fig_pie = go.Figure(data=[go.Pie(labels=all_component_types, values=differences, title=f'Overall Differences in Components between {file_name1} and {file_name2}')])
+                        fig_pie.update_layout(paper_bgcolor='white', plot_bgcolor='white', font_color='black')
+                        st.plotly_chart(fig_pie)
+                        figs.append(fig_pie)
 
-            
+                if figs and st.button("Export Analysis as PDF"):
+                    pdf_file_path = export_analysis_to_pdf({"Name": "IFC Files Comparison"}, {}, figs, "Author Name", "IFC Files Comparison Report", "This report contains the comparison analysis of two IFC files.")
+                    with open(pdf_file_path, 'rb') as f:
+                        st.download_button('Download PDF Report', f, 'ifc_comparison.pdf')
+
+            os.remove(file_path1)
+            os.remove(file_path2)
 
 # Add new functionalities for detailed object data extraction and display
 def get_objects_data_by_class(file, class_type):
