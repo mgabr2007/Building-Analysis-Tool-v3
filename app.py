@@ -56,6 +56,27 @@ def read_excel(file):
         return pd.DataFrame()
 
 # Metadata Management
+def get_project_location(ifc_file):
+    site = ifc_file.by_type('IfcSite')
+    if site:
+        site = site[0]
+        if hasattr(site, 'RefLatitude') and hasattr(site, 'RefLongitude'):
+            latitude = site.RefLatitude
+            longitude = site.RefLongitude
+
+            # Convert latitude and longitude from DMS to decimal
+            lat_deg = latitude[0] + latitude[1]/60 + latitude[2]/3600
+            lon_deg = longitude[0] + longitude[1]/60 + longitude[2]/3600
+
+            # Apply hemisphere corrections
+            if latitude[3] == -1:
+                lat_deg = -lat_deg
+            if longitude[3] == -1:
+                lon_deg = -lon_deg
+
+            return f"{lat_deg}° Latitude, {lon_deg}° Longitude"
+    return "Not available"
+
 def display_metadata(ifc_file):
     project = ifc_file.by_type('IfcProject')
     if project:
@@ -72,7 +93,6 @@ def display_metadata(ifc_file):
         # Display project location if available
         location = get_project_location(ifc_file)
         st.write(f"Location: {location}")
-
 
 # IFC Analysis Functions
 def count_building_components(ifc_file):
@@ -483,27 +503,6 @@ def display_detailed_object_data():
     except Exception as e:
         logging.error(f"Error in display_detailed_object_data: {e}")
         st.error(f"Error in display_detailed_object_data: {e}")
-
-def get_project_location(ifc_file):
-    site = ifc_file.by_type('IfcSite')
-    if site:
-        site = site[0]
-        if hasattr(site, 'RefLatitude') and hasattr(site, 'RefLongitude'):
-            latitude = site.RefLatitude
-            longitude = site.RefLongitude
-
-            # Convert latitude and longitude from DMS to decimal
-            lat_deg = latitude[0] + latitude[1]/60 + latitude[2]/3600
-            lon_deg = longitude[0] + longitude[1]/60 + longitude[2]/3600
-
-            # Apply hemisphere corrections
-            if latitude[3] == -1:
-                lat_deg = -lat_deg
-            if longitude[3] == -1:
-                lon_deg = -lon_deg
-
-            return f"{lat_deg}° Latitude, {lon_deg}° Longitude"
-    return "Not available"
 
 # Add new functionalities for window data extraction and display
 def get_window_orientation(window):
