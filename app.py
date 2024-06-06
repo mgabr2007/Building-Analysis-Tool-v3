@@ -500,6 +500,20 @@ def calculate_glass_area(window):
                                     elif hasattr(item, 'BBox'):
                                         logging.info(f"Glass bounding box volume found: {item.BBox.Volume}")
                                         return item.BBox.Volume
+                                    elif hasattr(item, 'StyledByItem'):
+                                        for styled_item in item.StyledByItem:
+                                            if styled_item.Styles:
+                                                for style in styled_item.Styles:
+                                                    if 'glass' in style.Name.lower():
+                                                        if hasattr(item, 'SweptArea') and hasattr(item.SweptArea, 'Area'):
+                                                            logging.info(f"Glass area found in styled item: {item.SweptArea.Area}")
+                                                            return item.SweptArea.Area
+                                                        elif hasattr(item, 'OuterBoundary'):
+                                                            logging.info(f"Glass outer boundary area found in styled item: {item.OuterBoundary.area}")
+                                                            return item.OuterBoundary.area
+                                                        elif hasattr(item, 'BBox'):
+                                                            logging.info(f"Glass bounding box volume found in styled item: {item.BBox.Volume}")
+                                                            return item.BBox.Volume
     except Exception as e:
         logging.error(f"Error calculating window glass area: {e}")
     return 0
