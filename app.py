@@ -68,22 +68,11 @@ def display_metadata(ifc_file):
             st.write(f"Time Stamp: {datetime.fromtimestamp(project.CreationDate)}")
         else:
             st.write("Time Stamp: Not available")
+        
         # Display project location if available
-        site = ifc_file.by_type('IfcSite')
-        if site:
-            site = site[0]
-            if hasattr(site, 'RefLatitude') and hasattr(site, 'RefLongitude'):
-                latitude = site.RefLatitude
-                longitude = site.RefLongitude
-                lat_deg = latitude[0] + latitude[1]/60 + latitude[2]/3600
-                lon_deg = longitude[0] + longitude[1]/60 + longitude[2]/3600
-                if latitude[3] == -1:
-                    lat_deg = -lat_deg
-                if longitude[3] == -1:
-                    lon_deg = -lon_deg
-                st.write(f"Location: {lat_deg}° Latitude, {lon_deg}° Longitude")
-            else:
-                st.write("Location: Not available")
+        location = get_project_location(ifc_file)
+        st.write(f"Location: {location}")
+
 
 # IFC Analysis Functions
 def count_building_components(ifc_file):
@@ -502,12 +491,17 @@ def get_project_location(ifc_file):
         if hasattr(site, 'RefLatitude') and hasattr(site, 'RefLongitude'):
             latitude = site.RefLatitude
             longitude = site.RefLongitude
+
+            # Convert latitude and longitude from DMS to decimal
             lat_deg = latitude[0] + latitude[1]/60 + latitude[2]/3600
             lon_deg = longitude[0] + longitude[1]/60 + longitude[2]/3600
+
+            # Apply hemisphere corrections
             if latitude[3] == -1:
                 lat_deg = -lat_deg
             if longitude[3] == -1:
                 lon_deg = -lon_deg
+
             return f"{lat_deg}° Latitude, {lon_deg}° Longitude"
     return "Not available"
 
