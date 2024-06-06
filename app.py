@@ -49,7 +49,7 @@ def read_excel(file):
     try:
         return pd.read_excel(file, engine='openpyxl')
     except Exception as e:
-        error_message = f"Failed to read Excel file: {e}"
+        error_message = f"Failed to read Excel file: {e}")
         logging.error(error_message)
         st.error(error_message)
         return pd.DataFrame()
@@ -467,10 +467,12 @@ def calculate_window_area(window):
     try:
         if hasattr(window, 'Representation') and window.Representation is not None:
             for rep in window.Representation.Representations:
-                if rep.RepresentationType == 'SweptSolid' and hasattr(rep, 'Items'):
+                if rep.RepresentationType in ['SweptSolid', 'SurfaceModel'] and hasattr(rep, 'Items'):
                     for item in rep.Items:
-                        if hasattr(item, 'SweptArea'):
+                        if hasattr(item, 'SweptArea') and hasattr(item.SweptArea, 'Area'):
                             return item.SweptArea.Area
+                        elif hasattr(item, 'OuterBoundary'):
+                            return item.OuterBoundary.area
     except Exception as e:
         logging.error(f"Error calculating window area: {e}")
     return 0
@@ -491,6 +493,8 @@ def get_window_orientation(window):
                             return 'North'
                         elif direction[1] < 0:
                             return 'South'
+                        elif direction[2] != 0:
+                            return 'Vertical'
     except Exception as e:
         logging.error(f"Error determining window orientation: {e}")
     return 'Unknown'
